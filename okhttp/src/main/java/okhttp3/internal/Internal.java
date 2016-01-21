@@ -17,8 +17,15 @@ package okhttp3.internal;
 
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+
 import javax.net.ssl.SSLSocket;
+
 import okhttp3.Address;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -36,7 +43,27 @@ import okhttp3.internal.io.RealConnection;
  */
 public abstract class Internal {
   public static final Logger logger = Logger.getLogger(OkHttpClient.class.getName());
+  
+  /* NetProphet */
+  public static class BriefFormatter extends Formatter 
+  {   
+      public BriefFormatter() { super(); }
 
+      @Override 
+      public String format(final LogRecord record) 
+      {
+          return record.getMessage()+" \n";
+      }   
+  }
+  static {
+	  Handler conHdlr = new ConsoleHandler();
+	  conHdlr.setFormatter(new BriefFormatter());
+	  conHdlr.setLevel(Level.INFO);
+	  logger.setUseParentHandlers(false);
+	  logger.addHandler(conHdlr);
+  }	
+  /* End NetProphet*/
+  
   public static void initializeInstanceForTests() {
     // Needed in tests to ensure that the instance is actually pointing to something.
     new OkHttpClient();

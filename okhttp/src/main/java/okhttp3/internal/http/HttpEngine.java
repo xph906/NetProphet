@@ -238,7 +238,17 @@ public final class HttpEngine {
     // We need the network to satisfy this request. Possibly for validating a conditional GET.
     boolean success = false;
     try {
+      /* NetProphet */
+      //userRequest.getRequestTimingANP().
+      //	setConnSetupStartTimeANP(System.currentTimeMillis());
+      /* End NetProphet */	
       httpStream = connect();
+      /* NetProphet */
+      //userRequest.getRequestTimingANP().
+      //	setConnSetupEndTimeANP(System.currentTimeMillis());
+      userRequest.getRequestTimingANP().setReqWriteStartTimeANP(
+				System.currentTimeMillis());
+      /* End NetProphet */	
       httpStream.setHttpEngine(this);
 
       if (writeRequestHeadersEagerly()) {
@@ -286,9 +296,19 @@ public final class HttpEngine {
 
   private HttpStream connect() throws RouteException, RequestException, IOException {
     boolean doExtensiveHealthChecks = !networkRequest.method().equals("GET");
-    return streamAllocation.newStream(client.connectTimeoutMillis(),
-        client.readTimeoutMillis(), client.writeTimeoutMillis(),
-        client.retryOnConnectionFailure(), doExtensiveHealthChecks);
+    
+    /* NetProphet */
+    HttpStream stream = streamAllocation.newStreamWithRequest(client.connectTimeoutMillis(),
+            client.readTimeoutMillis(), client.writeTimeoutMillis(),
+            client.retryOnConnectionFailure(), doExtensiveHealthChecks, userRequest);
+    
+    //Original Code
+    //HttpStream stream = streamAllocation.newStream(client.connectTimeoutMillis(),
+    //        client.readTimeoutMillis(), client.writeTimeoutMillis(),
+    //        client.retryOnConnectionFailure(), doExtensiveHealthChecks);
+    
+    /* End NetProphet */
+    return stream;
   }
 
   private static Response stripBody(Response response) {
@@ -600,6 +620,10 @@ public final class HttpEngine {
     // If we have a cache response too, then we're doing a conditional get.
     if (cacheResponse != null) {
       if (validate(cacheResponse, networkResponse)) {
+        /* NetProphet */
+    	//TODO: testing cache response label  
+    	userRequest.getRequestTimingANP().setUseCacheANP(true);
+    	/* End NetProphet*/  
         userResponse = cacheResponse.newBuilder()
             .request(userRequest)
             .priorResponse(stripBody(priorResponse))
@@ -633,6 +657,12 @@ public final class HttpEngine {
       maybeCache();
       userResponse = unzip(cacheWritingResponse(storeRequest, userResponse));
     }
+    /* NetProphet */
+    userRequest.getRequestTimingANP().setRespEndTimeANP(System.currentTimeMillis());
+	if(userResponse.body() != null){
+		userResponse.body().setUserRequest(userRequest);
+	}
+    /* End NetProphet */
   }
 
   class NetworkInterceptorChain implements Interceptor.Chain {
@@ -719,9 +749,19 @@ public final class HttpEngine {
 
   private Response readNetworkResponse() throws IOException {
     httpStream.finishRequest();
-
-    Response networkResponse = httpStream.readResponseHeaders()
-        .request(networkRequest)
+    /* NetProphet */
+    userRequest.getRequestTimingANP().
+    	setReqWriteEndTimeANP(System.currentTimeMillis());	
+    /* End NetProphet*/
+    
+    Response.Builder b = httpStream.readResponseHeaders();
+    
+    /* NetProphet */
+    userRequest.getRequestTimingANP().
+    	setRespStartTimeANP(System.currentTimeMillis());	
+    /* End NetProphet*/
+    
+    Response networkResponse = b.request(networkRequest)
         .handshake(streamAllocation.connection().handshake())
         .header(OkHeaders.SENT_MILLIS, Long.toString(sentRequestMillis))
         .header(OkHeaders.RECEIVED_MILLIS, Long.toString(System.currentTimeMillis()))

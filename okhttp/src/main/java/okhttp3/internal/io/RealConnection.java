@@ -137,7 +137,14 @@ public final class RealConnection extends FramedConnection.Listener implements C
       ConnectionSpecSelector connectionSpecSelector) throws IOException {
     rawSocket.setSoTimeout(readTimeout);
     try {
+      /* NetProphet */
+      long t1 = System.currentTimeMillis();
+      /* End NetProphet*/	
       Platform.get().connectSocket(rawSocket, route.socketAddress(), connectTimeout);
+      /* NetProphet */
+      long t2 = System.currentTimeMillis();
+      route.setHandshakeTimeANP(t2-t1);
+      /* End NetProphet*/	
     } catch (ConnectException e) {
       throw new ConnectException("Failed to connect to " + route.socketAddress());
     }

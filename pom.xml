@@ -121,7 +121,7 @@
         <artifactId>android</artifactId>
         <version>${android.version}</version>
       </dependency>
-    </dependencies>
+   </dependencies>
   </dependencyManagement>
 
   <build>

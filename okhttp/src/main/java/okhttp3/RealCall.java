@@ -17,13 +17,16 @@ package okhttp3;
 
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
+
+import okhttp3.Request.RequestTimingANP;
 import okhttp3.internal.NamedRunnable;
 import okhttp3.internal.http.HttpEngine;
 import okhttp3.internal.http.RequestException;
 import okhttp3.internal.http.RouteException;
 import okhttp3.internal.http.StreamAllocation;
-
 import static okhttp3.internal.Internal.logger;
 import static okhttp3.internal.http.HttpEngine.MAX_FOLLOW_UPS;
 
@@ -38,10 +41,74 @@ final class RealCall implements Call {
   Request originalRequest;
   HttpEngine engine;
 
+  /* NetProphet Fields */
+  private List<String> urlsANP;
+  private List<RequestTimingANP> timingsANP;
+  private long startTimeANP;
+  private long endTimeANP;
+  
+  public CallTiming getCallTiming(){
+	CallTiming timing = new CallTiming();
+	timing.startTimeANP = startTimeANP;
+	timing.endTimeANP = endTimeANP;
+	timing.urlsANP = urlsANP;
+	timing.timingsANP = timingsANP;
+	return timing;
+	
+  }
+  /* End NetProphet Fields */
+  
   protected RealCall(OkHttpClient client, Request originalRequest) {
     this.client = client;
     this.originalRequest = originalRequest;
+    
+    /* NetProphet Initialization */
+    urlsANP = new ArrayList<String>();
+	timingsANP = new ArrayList<RequestTimingANP>();
+	startTimeANP = 0;
+	endTimeANP = 0;
+    /* End NetProphet Initialization */
   }
+  
+  /* NetProphet Getter and Setter */
+  public List<String> getUrlsANP() {
+    return urlsANP;
+  }
+
+  public void setUrlsANP(List<String> urlsANP) {
+	this.urlsANP = urlsANP;
+  }
+
+  public List<RequestTimingANP> getTimingsANP() {
+    return timingsANP;
+  }
+
+  public void setTimingsANP(List<RequestTimingANP> timingsANP) {
+    this.timingsANP = timingsANP;
+  }
+
+  public long getStartTimeANP() {
+    return startTimeANP;
+  }
+
+  public void setStartTimeANP(long startTimeANP) {
+    this.startTimeANP = startTimeANP;
+  }
+
+  public long getEndTimeANP() {
+    long accurateEndTime = endTimeANP;
+	for (RequestTimingANP timing : timingsANP) {
+  	  if (timing.getRespEndTimeANP() > accurateEndTime)
+  		accurateEndTime = timing.getRespEndTimeANP();
+  	}
+    return accurateEndTime;
+  }
+
+  public void setEndTimeANP(long endTimeANP) {
+    this.endTimeANP = endTimeANP;
+  }
+
+  /* End NetProphet Getter and Setter */
 
   @Override public Request request() {
     return originalRequest;
@@ -52,6 +119,11 @@ final class RealCall implements Call {
       if (executed) throw new IllegalStateException("Already Executed");
       executed = true;
     }
+    /* NetProphet Debug*/
+    long startTime = System.currentTimeMillis();
+	long endTime = 0, diffTime = 0;
+    /* End NetProphet Debug */
+	
     try {
       client.dispatcher().executed(this);
       Response result = getResponseWithInterceptorChain(false);
@@ -59,6 +131,13 @@ final class RealCall implements Call {
       return result;
     } finally {
       client.dispatcher().finished(this);
+    
+      /* NetProphet Debug */
+      endTime = System.currentTimeMillis();
+      diffTime = endTime - startTime;
+      logger.log(Level.INFO, "Latency of executing request: "
+    		  + diffTime + " url:" + originalRequest.url().toString());
+      /* End NetProphet Debug */
     }
   }
 
@@ -157,7 +236,14 @@ final class RealCall implements Call {
 
   private Response getResponseWithInterceptorChain(boolean forWebSocket) throws IOException {
     Interceptor.Chain chain = new ApplicationInterceptorChain(0, originalRequest, forWebSocket);
-    return chain.proceed(originalRequest);
+    /* NetProphet */
+    startTimeANP = System.currentTimeMillis();
+    /* End NetProphet*/
+    Response rs = chain.proceed(originalRequest);
+    /* NetProphet */
+    endTimeANP = System.currentTimeMillis();
+    /* End NetProphet*/
+    return rs;
   }
 
   class ApplicationInterceptorChain implements Interceptor.Chain {
@@ -237,15 +323,43 @@ final class RealCall implements Call {
 
       boolean releaseConnection = true;
       try {
-        engine.sendRequest();
+    	/* NetProphet */
+    	urlsANP.add(engine.getRequest().url().toString());
+		engine.getRequest().getRequestTimingANP().
+			setReqStartTimeANP(System.currentTimeMillis());
+        /* End NetProphet */
+		
+		engine.sendRequest();
         engine.readResponse();
+        
+        /* NetProphet */
+        timingsANP.add(engine.getRequest().getRequestTimingANP());
+        /* End NetProphet */
         releaseConnection = false;
       } catch (RequestException e) {
         // The attempt to interpret the request failed. Give up.
+    	/* NetProphet */
+    	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+    	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
+    	engine.getRequest().getRequestTimingANP().
+    		setRespEndTimeANP(System.currentTimeMillis());
+    	timingsANP.add(request.getRequestTimingANP());
+    	/* End NetProphet */
         throw e.getCause();
       } catch (RouteException e) {
         // The attempt to connect via a route failed. The request will not have been sent.
-        HttpEngine retryEngine = engine.recover(e.getLastConnectException(), null);
+    	/* NetProphet */
+    	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+    	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());		
+    	/* End NetProphet */
+        
+    	HttpEngine retryEngine = engine.recover(e.getLastConnectException(), null);
+        
+        /* NetProphet */
+        engine.getRequest().getRequestTimingANP().
+        	setRespEndTimeANP(System.currentTimeMillis());
+        timingsANP.add(request.getRequestTimingANP());
+        /* End NetProphet */
         if (retryEngine != null) {
           releaseConnection = false;
           engine = retryEngine;
@@ -255,7 +369,18 @@ final class RealCall implements Call {
         throw e.getLastConnectException();
       } catch (IOException e) {
         // An attempt to communicate with a server failed. The request may have been sent.
+    	/* NetProphet */
+      	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+      	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());		
+      	/* End NetProphet */
+      	
         HttpEngine retryEngine = engine.recover(e, null);
+        
+        /* NetProphet */
+        engine.getRequest().getRequestTimingANP().
+        	setRespEndTimeANP(System.currentTimeMillis());
+        timingsANP.add(request.getRequestTimingANP());
+        /* End NetProphet */
         if (retryEngine != null) {
           releaseConnection = false;
           engine = retryEngine;

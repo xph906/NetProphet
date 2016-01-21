@@ -22,17 +22,19 @@ import java.lang.ref.WeakReference;
 import java.net.ProtocolException;
 import java.net.SocketTimeoutException;
 import java.security.cert.CertificateException;
+
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
+
 import okhttp3.Address;
 import okhttp3.ConnectionPool;
+import okhttp3.Request;
 import okhttp3.Route;
 import okhttp3.internal.Internal;
 import okhttp3.internal.RouteDatabase;
 import okhttp3.internal.Util;
 import okhttp3.internal.io.RealConnection;
 import okio.Sink;
-
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
@@ -83,13 +85,38 @@ public final class StreamAllocation {
   private boolean released;
   private boolean canceled;
   private HttpStream stream;
+  
+  /* NetProphet */
+  private Request request;
+  
+  public Request getRequest() {
+	return request;
+  }
+  
+  public void setRequest(Request request) {
+	this.request = request;
+  }
+  /* End NetProphet */
 
   public StreamAllocation(ConnectionPool connectionPool, Address address) {
     this.connectionPool = connectionPool;
     this.address = address;
     this.routeSelector = new RouteSelector(address, routeDatabase());
+    
+    /* NetProphet Initialization */
+    this.request = null;
+    /* End NetProphet Initialization */
   }
-
+ 
+   /* NetProphet */
+  public HttpStream newStreamWithRequest(int connectTimeout, int readTimeout, int writeTimeout,
+	  boolean connectionRetryEnabled, boolean doExtensiveHealthChecks, Request request)
+      throws RouteException, IOException{
+	  this.request = request;
+	  return newStream(connectTimeout, readTimeout, writeTimeout, connectionRetryEnabled, doExtensiveHealthChecks);
+  }
+  /* End NetProphet */
+  
   public HttpStream newStream(int connectTimeout, int readTimeout, int writeTimeout,
       boolean connectionRetryEnabled, boolean doExtensiveHealthChecks)
       throws RouteException, IOException {
@@ -164,6 +191,10 @@ public final class StreamAllocation {
       RealConnection pooledConnection = Internal.instance.get(connectionPool, address, this);
       if (pooledConnection != null) {
         this.connection = pooledConnection;
+        /* NetProphet */
+        //ConnSetupEndTime = 0 means connection is from pool
+        request.getRequestTimingANP().setConnSetupEndTimeANP(0);
+        /* End NetProphet */
         return pooledConnection;
       }
 
@@ -171,7 +202,15 @@ public final class StreamAllocation {
     }
 
     if (selectedRoute == null) {
+      /* NetProphet */
+      request.getRequestTimingANP().
+      	setDnsStartTimeANP(System.currentTimeMillis());
+      /* End NetProphet */	
       selectedRoute = routeSelector.next();
+      /* NetProphet */
+      request.getRequestTimingANP().
+      	setDnsEndTimeANP(System.currentTimeMillis());
+      /* End NetProphet */	
       synchronized (connectionPool) {
         route = selectedRoute;
       }
@@ -184,9 +223,20 @@ public final class StreamAllocation {
       this.connection = newConnection;
       if (canceled) throw new IOException("Canceled");
     }
-
+    /* NetProphet */
+    request.getRequestTimingANP().
+    	setConnSetupStartTimeANP(System.currentTimeMillis());
+    /* End NetProphet */
+    
     newConnection.connect(connectTimeout, readTimeout, writeTimeout, address.connectionSpecs(),
         connectionRetryEnabled);
+    
+    /* NetProphet */
+    if(newConnection.route().getHandshakeTimeANP() != 0)
+    	request.getRequestTimingANP().setHandshakeTimeANP(newConnection.route().getHandshakeTimeANP());
+    request.getRequestTimingANP().
+      setConnSetupEndTimeANP(System.currentTimeMillis());
+    /* End NetProphet */	
     routeDatabase().connected(newConnection.route());
 
     return newConnection;

@@ -16,6 +16,9 @@
 package okhttp3;
 
 import java.io.IOException;
+import java.util.List;
+
+import okhttp3.Request.RequestTimingANP;
 
 /**
  * A call is a request that has been prepared for execution. A call can be canceled. As this object
@@ -24,7 +27,18 @@ import java.io.IOException;
 public interface Call {
   /** Returns the original request that initiated this call. */
   Request request();
-
+  
+  /* NetProphet */
+  public class CallTiming {
+	  public List<String> urlsANP;
+	  public List<RequestTimingANP> timingsANP;
+	  public long startTimeANP;
+	  public long endTimeANP;
+  }
+  CallTiming getCallTiming();
+  /* End NetProphet*/
+  
+  
   /**
    * Invokes the request immediately, and blocks until the response can be processed or is in
    * error.

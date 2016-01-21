@@ -16,15 +16,19 @@
 package okhttp3;
 
 import java.io.Closeable;
+import static okhttp3.internal.Internal.logger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.util.logging.Level;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import okhttp3.internal.Util;
 import okio.Buffer;
 import okio.BufferedSource;
-
 import static okhttp3.internal.Util.UTF_8;
 
 /**
@@ -52,11 +56,48 @@ import static okhttp3.internal.Util.UTF_8;
  * re-read the bytes of the response. Use this one shot to read the entire response into memory with
  * {@link #bytes()} or {@link #string()}. Or stream the response with either {@link #source()},
  * {@link #byteStream()}, or {@link #charStream()}.
+ * 
+ * * <p> NetProphet Timing: if customer calls string() or bitmap(), the response end
+ * time will be automatically updated; otherwise, if customer used
+ * streaming-based approach to read contents (i.e., byteStream, charStream), the
+ * customer has to call void informFinishedReadingResponse() 
+ *  1. text: string()  <= 5M works fine
+ *  2. image: bitmap() 
+ *  3. binary: TODO 
+ *  4. large contents: TODO
  */
 public abstract class ResponseBody implements Closeable {
   /** Multiple calls to {@link #charStream()} must return the same instance. */
   private Reader reader;
 
+  /* NetProphet */
+  Request userRequest;
+  public Request getUserRequest() {
+    return userRequest;
+  }
+  
+  public void informFinishedReadingResponse(){
+    if(userRequest != null){
+	  userRequest.getRequestTimingANP().setRespEndTimeANP(System.currentTimeMillis());
+	  userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
+    }
+    else
+      logger.log(Level.SEVERE, "userRequest has not been set to ResponseBody");
+  }
+	
+  //this function has to run on Android
+  public Bitmap bitmap(){
+	Bitmap map =BitmapFactory.decodeStream(byteStream());
+	informFinishedReadingResponse();
+	return map;
+  }
+  
+  public void setUserRequest(Request userRequest) {
+    this.userRequest = userRequest;
+  }
+  
+  /* End NetProphet */
+  
   public abstract MediaType contentType();
 
   /**
@@ -106,7 +147,11 @@ public abstract class ResponseBody implements Closeable {
    * UTF-8.
    */
   public final String string() throws IOException {
-    return new String(bytes(), charset().name());
+	 String str = new String(bytes(), charset().name());
+	/* NetProphet */
+	informFinishedReadingResponse();
+	/* End NetProphet */  
+    return str;
   }
 
   private Charset charset() {
