@@ -1,0 +1,16 @@
+mvn eclipse:eclipse
+mvn package
+mvn compile
+
+Window -> Preferences -> Maven -> Errors/Warnings -> Plugin execution not covered by lifecycle configuration = Warning
+
+
+modify ./okhttp/pom.xml file to add gson package:
+  <dependency>
+    <groupId>gson</groupId>
+    <artifactId>com.google.gson</artifactId>
+    <version>2.5</version>
+    <scope>system</scope>
+    <systemPath>/Users/a/Downloads/gson-2.5.jar</systemPath>
+  </dependency> 
+  
