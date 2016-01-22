@@ -39,6 +39,7 @@ public final class Route {
   final InetSocketAddress inetSocketAddress;
   /* NetProphet Field */
   private long handshakeTimeANP;
+  private long tlsHandshakeTimeANP;
   /* End NetProphet Field */
 
   public Route(Address address, Proxy proxy, InetSocketAddress inetSocketAddress) {
@@ -57,6 +58,7 @@ public final class Route {
     
     /* NetProphet Initialization */
     this.handshakeTimeANP = 0;
+    this.tlsHandshakeTimeANP = 0;
     /* End NetProphet Initialization */
   }
 
@@ -64,9 +66,16 @@ public final class Route {
   public long getHandshakeTimeANP() {
 	return handshakeTimeANP;
   }
-
+  
   public void setHandshakeTimeANP(long handshakeTimeANP) {
 	this.handshakeTimeANP = handshakeTimeANP;
+  }
+  
+  public long getTLSHandshakeTimeANP(){
+	  return this.tlsHandshakeTimeANP;
+  }
+  public void setTLSHandshakeTimeANP(long t){
+	  this.tlsHandshakeTimeANP = t;
   }
   /* End NetProphet Getter and Setter */
   

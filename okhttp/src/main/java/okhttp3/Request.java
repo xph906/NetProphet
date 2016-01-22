@@ -35,19 +35,49 @@ public final class Request {
 	private volatile CacheControl cacheControl; // Lazily initialized.
 
 	/* NetProphet Class */
+	public class ResponseInfoANP{
+		private long sizeANP;
+		private int codeANP;
+		private String userComments;
+		
+		public String getUserComments() {
+			return userComments;
+		}
+		public void setUserComments(String userComments) {
+			this.userComments = userComments;
+		}
+		public long getSizeANP() {
+			return sizeANP;
+		}
+		public void setSizeANP(long sizeANP) {
+			this.sizeANP = sizeANP;
+		}
+		public int getCodeANP() {
+			return codeANP;
+		}
+		public void setCodeANP(int codeANP) {
+			this.codeANP = codeANP;
+		}
+		
+		public ResponseInfoANP(){
+			sizeANP = 0;
+			codeANP = 0;
+			userComments = "";
+		}
+	}
+	
 	public class RequestTimingANP {
 		private long reqStartTimeANP;
 		private long dnsStartTimeANP;
 		private long dnsEndTimeANP;
 		private long connSetupStartTimeANP;
-		private long tlsConnSetupStartTimeANP; // Not used for now
-		private long tlsConnSetupEndTimeANP; // Not used for now
 		private long connSetupEndTimeANP;
 		private long reqWriteStartTimeANP;
 		private long reqWriteEndTimeANP;
 		private long respStartTimeANP;
 		private long respEndTimeANP;
 		private long handshakeTimeANP;
+		private long tlsHandshakeTimeANP;
 		private boolean useCacheANP;
 		private boolean isAccurateEndTimeANP;
 		private boolean isSuccessfulANP; // set to false only when retry also
@@ -61,8 +91,6 @@ public final class Request {
 			this.dnsStartTimeANP = 0;
 			this.connSetupEndTimeANP = 0;
 			this.connSetupStartTimeANP = 0;
-			this.tlsConnSetupEndTimeANP = 0;
-			this.tlsConnSetupStartTimeANP = 0;
 			this.connSetupStartTimeANP = 0;
 			this.reqWriteEndTimeANP = 0;
 			this.reqWriteStartTimeANP = 0;
@@ -160,20 +188,12 @@ public final class Request {
 			this.connSetupStartTimeANP = connSetupStartTimeANP;
 		}
 
-		public long getTlsConnSetupStartTimeANP() {
-			return tlsConnSetupStartTimeANP;
+		public long getTlsHandshakeTimeANP() {
+			return tlsHandshakeTimeANP;
 		}
 
-		public void setTlsConnSetupStartTimeANP(long tlsConnSetupStartTimeANP) {
-			this.tlsConnSetupStartTimeANP = tlsConnSetupStartTimeANP;
-		}
-
-		public long getTlsConnSetupEndTimeANP() {
-			return tlsConnSetupEndTimeANP;
-		}
-
-		public void setTlsConnSetupEndTimeANP(long tlsConnSetupEndTimeANP) {
-			this.tlsConnSetupEndTimeANP = tlsConnSetupEndTimeANP;
+		public void setTlsHandshakeTimeANP(long tlsHandshakeTimeANP) {
+			this.tlsHandshakeTimeANP = tlsHandshakeTimeANP;
 		}
 
 		public long getConnSetupEndTimeANP() {
@@ -229,6 +249,7 @@ public final class Request {
 	
 	/* NetProphet Field */
 	private RequestTimingANP requestTimingANP;
+	private ResponseInfoANP responseInfoANP;
 	/* End NetProphet Field*/
 
 	private Request(Builder builder) {
@@ -240,6 +261,7 @@ public final class Request {
 		
 		/* NetProphet Initialization */
 		requestTimingANP = new RequestTimingANP();
+		responseInfoANP = new ResponseInfoANP();
 		/* End NetProphet Initialization*/
 	}
 
@@ -250,6 +272,14 @@ public final class Request {
 
 	public void setRequestTimingANP(RequestTimingANP requestTimingANP) {
 		this.requestTimingANP = requestTimingANP;
+	}
+	
+	public ResponseInfoANP getResponseInfoANP() {
+		return responseInfoANP;
+	}
+
+	public void setResponseInfoANP(ResponseInfoANP responseInfoANP) {
+		this.responseInfoANP = responseInfoANP;
 	}
 	/* End NetProphet Getter and Setter */
 	

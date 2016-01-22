@@ -234,6 +234,8 @@ public final class StreamAllocation {
     /* NetProphet */
     if(newConnection.route().getHandshakeTimeANP() != 0)
     	request.getRequestTimingANP().setHandshakeTimeANP(newConnection.route().getHandshakeTimeANP());
+    if(newConnection.route().getTLSHandshakeTimeANP() != 0)
+    	request.getRequestTimingANP().setTlsHandshakeTimeANP(newConnection.route().getTLSHandshakeTimeANP());
     request.getRequestTimingANP().
       setConnSetupEndTimeANP(System.currentTimeMillis());
     /* End NetProphet */	

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import okhttp3.Call;
-import okhttp3.Call.CallTiming;
+import okhttp3.Call.CallStatInfo;
 import okhttp3.Callback;
 import okhttp3.Headers;
 import okhttp3.MediaType;
@@ -45,42 +45,11 @@ public class DebugMain {
 				String.format("Response length before string():%d length:%d",size1, size2) );
 		
 		logger.log(Level.WARNING, "response: "+response.isRedirect());
-		CallTiming timingObj = c.getCallTiming();
-		if(timingObj == null)
-			throw new Exception("timing is null!");
-		
-		long t1 = timingObj.startTimeANP;
-		long t2 = timingObj.getEndTimeANP();
-		List<RequestTimingANP> timingsANP = timingObj.timingsANP;
-		List<String> urlsANP = timingObj.urlsANP;
-		logger.log(Level.WARNING, 
-				String.format("Overall delay: %d", t2-t1));
-		if(timingsANP.size() != urlsANP.size()){
-			throw new Exception("the sizes of urlsANP and timingsANP are not the same ");
-		}
-		Iterator<String> urlIter = urlsANP.iterator();
-		Iterator<RequestTimingANP> timingIter = timingsANP.iterator();
-		while(urlIter.hasNext()){
-			String curURL = urlIter.next();
-			RequestTimingANP timing = timingIter.next();
-			long dnsDelay = timing.getDnsEndTimeANP() - timing.getDnsStartTimeANP();
-			long connSetupDelay = timing.getConnSetupEndTimeANP() - timing.getConnSetupStartTimeANP();
-			long reqWriteDelay = timing.getReqWriteEndTimeANP() - timing.getReqWriteStartTimeANP();
-			long respDelay = timing.getRespEndTimeANP() - timing.getReqWriteStartTimeANP();
-			long TTFB = timing.getRespStartTimeANP() - timing.getReqWriteEndTimeANP();
-			long respTransDelay = timing.getRespEndTimeANP() - timing.getRespStartTimeANP();
-			long overallDelay = timing.getRespEndTimeANP() - timing.getReqStartTimeANP();
-			logger.log(Level.WARNING,
-					String.format(
-							"accurateRespTime:%b overall:%dms dns:%dms, connSetup:%dms (handshake:%dms), " + 
-									"server:%dms, resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms ) \n for URL:%s\n", 
-							timing.isAccurateEndTimeANP(), overallDelay, dnsDelay, connSetupDelay, 
-							timing.getHandshakeTimeANP(), timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay, curURL));
-		}
+		displayTimingInfo(c);
 		
 	}
 	
-	public  void sendGetRequest(String url) throws IOException{
+	public  void sendGetRequest(String url) throws Exception{
 		OkHttpClient client = new OkHttpClient().newBuilder()
 				.build();
 		// Create request for remote resource.
@@ -98,6 +67,7 @@ public class DebugMain {
 				String.format("ResponseSize: directLength:%d fullLength:%d",size1, size2) );
 		logger.log(Level.INFO,
 				String.format("Response    : %s", str));
+		displayTimingInfo(c);
 	}
 	
 	public void postFile(String url, File file ) throws Exception{
@@ -121,14 +91,14 @@ public class DebugMain {
 		if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
 		String result = response.body().string();
 		
-		CallTiming timingObj = c.getCallTiming();
+		CallStatInfo timingObj = c.getCallStatInfo();
 		if(timingObj == null)
 			throw new Exception("timing is null!");
 		
-		long t1 = timingObj.startTimeANP;
+		long t1 = timingObj.getStartTimeANP();
 		long t2 = timingObj.getEndTimeANP();
-		List<RequestTimingANP> timingsANP = timingObj.timingsANP;
-		List<String> urlsANP = timingObj.urlsANP;
+		List<RequestTimingANP> timingsANP = timingObj.getTimingsANP();
+		List<String> urlsANP = timingObj.getUrlsANP();
 		logger.log(Level.WARNING, 
 				String.format("Overall delay: %d", t2-t1));
 		if(timingsANP.size() != urlsANP.size()){
@@ -231,14 +201,14 @@ public class DebugMain {
 	}
 
 	private void displayTimingInfo(Call c) throws Exception{
-		 CallTiming timingObj = c.getCallTiming();
+		CallStatInfo timingObj = c.getCallStatInfo();
 			if(timingObj == null)
 				throw new Exception("timing is null!");
 			
-			long t1 = timingObj.startTimeANP;
+			long t1 = timingObj.getStartTimeANP();
 			long t2 = timingObj.getEndTimeANP();
-			List<RequestTimingANP> timingsANP = timingObj.timingsANP;
-			List<String> urlsANP = timingObj.urlsANP;
+			List<RequestTimingANP> timingsANP = timingObj.getTimingsANP();
+			List<String> urlsANP = timingObj.getUrlsANP();
 			logger.log(Level.WARNING, 
 					String.format("Overall delay: %d", t2-t1));
 			if(timingsANP.size() != urlsANP.size()){
@@ -251,17 +221,19 @@ public class DebugMain {
 				RequestTimingANP timing = timingIter.next();
 				long dnsDelay = timing.getDnsEndTimeANP() - timing.getDnsStartTimeANP();
 				long connSetupDelay = timing.getConnSetupEndTimeANP() - timing.getConnSetupStartTimeANP();
+				long tlsConnDelay = timing.getTlsHandshakeTimeANP();
 				long reqWriteDelay = timing.getReqWriteEndTimeANP() - timing.getReqWriteStartTimeANP();
 				long respDelay = timing.getRespEndTimeANP() - timing.getReqWriteStartTimeANP();
 				long TTFB = timing.getRespStartTimeANP() - timing.getReqWriteEndTimeANP();
 				long respTransDelay = timing.getRespEndTimeANP() - timing.getRespStartTimeANP();
 				long overallDelay = timing.getRespEndTimeANP() - timing.getReqStartTimeANP();
+				
 				logger.log(Level.WARNING,
 						String.format(
-								"accurateRespTime:%b overall:%dms \n  dns:%dms \n  connSetup:%dms (handshake:%dms) " + 
+								"accurateRespTime:%b overall:%dms \n  dns:%dms \n  connSetup:%dms (handshake:%dms, tls:%dms) " + 
 										"\n  server:%dms \n  resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms ) \n for URL:%s\n", 
 								timing.isAccurateEndTimeANP(), overallDelay, dnsDelay, connSetupDelay, 
-								timing.getHandshakeTimeANP(), timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay, curURL));
+								timing.getHandshakeTimeANP(), tlsConnDelay, timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay, curURL));
 			}
 	}
 	
@@ -269,7 +241,7 @@ public class DebugMain {
 		// TODO Auto-generated method stub
 		DebugMain client = new DebugMain();
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
-		client.sendGetRequest(url);
+		client.makeRequest(url);
 		
 		String hostOregan = "http://52.11.26.222:3000/";
 		

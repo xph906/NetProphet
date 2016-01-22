@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import okhttp3.Request.RequestTimingANP;
+import okhttp3.Request.ResponseInfoANP;
 import okhttp3.internal.NamedRunnable;
 import okhttp3.internal.http.HttpEngine;
 import okhttp3.internal.http.RequestException;
@@ -44,17 +45,18 @@ final class RealCall implements Call {
   /* NetProphet Fields */
   private List<String> urlsANP;
   private List<RequestTimingANP> timingsANP;
+  private List<ResponseInfoANP> infosANP;
   private long startTimeANP;
   private long endTimeANP;
   
-  public CallTiming getCallTiming(){
-	CallTiming timing = new CallTiming();
-	timing.startTimeANP = startTimeANP;
-	timing.endTimeANP = endTimeANP;
-	timing.urlsANP = urlsANP;
-	timing.timingsANP = timingsANP;
-	return timing;
-	
+  private boolean isFailedCallANP;
+  private String detailedErrorMsg;
+  
+  public CallStatInfo getCallStatInfo(){
+	CallStatInfo info = new CallStatInfo(urlsANP, timingsANP, 
+			startTimeANP, endTimeANP, infosANP, 
+			isFailedCallANP, detailedErrorMsg);
+	return info;
   }
   /* End NetProphet Fields */
   
@@ -65,8 +67,11 @@ final class RealCall implements Call {
     /* NetProphet Initialization */
     urlsANP = new ArrayList<String>();
 	timingsANP = new ArrayList<RequestTimingANP>();
+	infosANP = new ArrayList<ResponseInfoANP>();
 	startTimeANP = 0;
 	endTimeANP = 0;
+	isFailedCallANP = false;
+	detailedErrorMsg = "";
     /* End NetProphet Initialization */
   }
   
@@ -334,59 +339,68 @@ final class RealCall implements Call {
         
         /* NetProphet */
         timingsANP.add(engine.getRequest().getRequestTimingANP());
+        engine.getRequest().getResponseInfoANP().
+        	setCodeANP(engine.getResponse().code());
+        infosANP.add(engine.getRequest().getResponseInfoANP());
         /* End NetProphet */
         releaseConnection = false;
       } catch (RequestException e) {
         // The attempt to interpret the request failed. Give up.
     	/* NetProphet */
+    	timingsANP.add(request.getRequestTimingANP());
+    	infosANP.add(engine.getRequest().getResponseInfoANP());
+    	//error recording routine
     	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
     	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
-    	engine.getRequest().getRequestTimingANP().
-    		setRespEndTimeANP(System.currentTimeMillis());
-    	timingsANP.add(request.getRequestTimingANP());
+    	isFailedCallANP = false;
+    	detailedErrorMsg = e.toString();
     	/* End NetProphet */
         throw e.getCause();
       } catch (RouteException e) {
-        // The attempt to connect via a route failed. The request will not have been sent.
-    	/* NetProphet */
-    	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
-    	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());		
-    	/* End NetProphet */
-        
+        // The attempt to connect via a route failed. The request will not have been sent. 
     	HttpEngine retryEngine = engine.recover(e.getLastConnectException(), null);
         
         /* NetProphet */
-        engine.getRequest().getRequestTimingANP().
-        	setRespEndTimeANP(System.currentTimeMillis());
         timingsANP.add(request.getRequestTimingANP());
+        infosANP.add(engine.getRequest().getResponseInfoANP());
         /* End NetProphet */
         if (retryEngine != null) {
           releaseConnection = false;
           engine = retryEngine;
           continue;
         }
+        
+        /* NetProphet */
+        //error recording routine
+    	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+    	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
+    	isFailedCallANP = false;
+    	detailedErrorMsg = e.toString();
+    	/* End NetProphet */
         // Give up; recovery is not possible.
         throw e.getLastConnectException();
       } catch (IOException e) {
         // An attempt to communicate with a server failed. The request may have been sent.
-    	/* NetProphet */
-      	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
-      	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());		
-      	/* End NetProphet */
-      	
         HttpEngine retryEngine = engine.recover(e, null);
         
         /* NetProphet */
         engine.getRequest().getRequestTimingANP().
         	setRespEndTimeANP(System.currentTimeMillis());
         timingsANP.add(request.getRequestTimingANP());
+        infosANP.add(engine.getRequest().getResponseInfoANP());
         /* End NetProphet */
         if (retryEngine != null) {
           releaseConnection = false;
           engine = retryEngine;
           continue;
         }
-
+        /* NetProphet */
+        //error recording routine
+    	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+    	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
+    	isFailedCallANP = false;
+    	detailedErrorMsg = e.toString();
+    	/* End NetProphet */
         // Give up; recovery is not possible.
         throw e;
       } finally {

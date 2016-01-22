@@ -152,7 +152,14 @@ public final class RealConnection extends FramedConnection.Listener implements C
     sink = Okio.buffer(Okio.sink(rawSocket));
 
     if (route.address().sslSocketFactory() != null) {
+      /* NetProphet */
+      long t3 = System.currentTimeMillis();
+      /* End NetProphet */
       connectTls(readTimeout, writeTimeout, connectionSpecSelector);
+      /* NetProphet */
+      long t4 = System.currentTimeMillis();
+      route.setTLSHandshakeTimeANP(t4-t3);
+      /* End NetProphet */
     } else {
       protocol = Protocol.HTTP_1_1;
       socket = rawSocket;

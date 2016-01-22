@@ -76,9 +76,21 @@ public abstract class ResponseBody implements Closeable {
     return userRequest;
   }
   
-  public void informFinishedReadingResponse(){
+  // This method updates 
+  //   1. respEndTime: 0 means currentTimeMillis
+  //   2. respSize 
+  //   3. user comments: if the call triggers an Exception, 
+  //         clients can put error information into the comments.
+  public void informFinishedReadingResponse(int size, String comments, int respEndTime){
     if(userRequest != null){
-	  userRequest.getRequestTimingANP().setRespEndTimeANP(System.currentTimeMillis());
+      if(respEndTime == 0)
+    	  userRequest.getRequestTimingANP().setRespEndTimeANP(System.currentTimeMillis());
+      else
+    	  userRequest.getRequestTimingANP().setRespEndTimeANP(0);
+	  userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
+	  userRequest.getResponseInfoANP().setSizeANP(size);
+	  if(comments != "")
+		  userRequest.getResponseInfoANP().setUserComments(comments);
 	  userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
     }
     else
@@ -88,7 +100,7 @@ public abstract class ResponseBody implements Closeable {
   //this function has to run on Android
   public Bitmap bitmap(){
 	Bitmap map =BitmapFactory.decodeStream(byteStream());
-	informFinishedReadingResponse();
+	informFinishedReadingResponse(map.getByteCount(),"",0);
 	return map;
   }
   
@@ -149,7 +161,7 @@ public abstract class ResponseBody implements Closeable {
   public final String string() throws IOException {
 	 String str = new String(bytes(), charset().name());
 	/* NetProphet */
-	informFinishedReadingResponse();
+	informFinishedReadingResponse(str.length(),"", 0);
 	/* End NetProphet */  
     return str;
   }
