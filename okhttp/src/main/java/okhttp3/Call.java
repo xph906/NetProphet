@@ -16,6 +16,7 @@
 package okhttp3;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import okhttp3.Request.RequestTimingANP;
@@ -34,6 +35,20 @@ public interface Call {
 	  public List<RequestTimingANP> timingsANP;
 	  public long startTimeANP;
 	  public long endTimeANP;
+	  
+	  public long getEndTimeANP(){
+		  long rs = endTimeANP;
+		  if (timingsANP == null){
+			  return rs;
+		  }
+		  Iterator<RequestTimingANP> iter = timingsANP.iterator();
+		  while(iter.hasNext()){
+			  RequestTimingANP obj = iter.next();
+			  if (obj.getRespEndTimeANP() > rs)
+				  rs = obj.getRespEndTimeANP();
+		  }
+		  return rs;
+	  }
   }
   CallTiming getCallTiming();
   /* End NetProphet*/
