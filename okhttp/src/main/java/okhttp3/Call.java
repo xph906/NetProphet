@@ -43,6 +43,7 @@ public interface Call {
 		HTTP_ERR,
 		OTHER_ERR,
 		IN_COMPLETE_TIMING, /*hasn't executed informFinishedReadingResponse*/
+		HTTP_SERVER_ERR, /*Server not responding HTTP response*/
 		NO_REQ
 	}
 	
@@ -87,10 +88,6 @@ public interface Call {
 
 		public void setFailedCallANP(boolean isFailedCallANP) {
 			this.isFailedCallANP = isFailedCallANP;
-		}
-
-		public ErrorMsg getErrorMsgANP() {
-			return errorMsgANP;
 		}
 
 		public void setErrorMsgANP(ErrorMsg errorMsgANP) {
@@ -145,8 +142,19 @@ public interface Call {
 				else if(lastTiming.getRespStartTimeANP()!=0 &&
 						lastTiming.getRespEndTimeANP()==0)
 					return ErrorMsg.RESP_RECV_ERR;
+				else if(lastTiming.getRespStartTimeANP()==0)
+					return ErrorMsg.HTTP_SERVER_ERR;
 				
-				logger.log(Level.WARNING, "unknown error: "+detailedErrorMsgANP);
+				logger.log(Level.WARNING, String.format(
+						"  unknown error: %s\n"+
+						"  dns: %d, %d       \n"+
+						"  conn:%d, %d      \n"+
+						"  req :%d, %d      \n"+
+						"  resp:%d, %d\n", detailedErrorMsgANP,
+						lastTiming.getDnsStartTimeANP(), lastTiming.getDnsEndTimeANP(),
+						lastTiming.getConnSetupStartTimeANP(), lastTiming.getConnSetupEndTimeANP(),
+						lastTiming.getReqWriteStartTimeANP(), lastTiming.getReqWriteEndTimeANP(),
+						lastTiming.getRespStartTimeANP(), lastTiming.getRespEndTimeANP()));
 				return ErrorMsg.OTHER_ERR;
 			}
 			//non-zero error code means the connection succeed

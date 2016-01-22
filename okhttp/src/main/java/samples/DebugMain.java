@@ -32,7 +32,19 @@ public class DebugMain {
 
 		// Execute the request and retrieve the response.
 		Call c = client.newCall(request);
-		Response response = c.execute();
+		Response response;
+		try{
+			response = c.execute();
+		}
+		catch (Exception e){
+			logger.log(Level.WARNING, 
+					"Call failed:"+url+"\n  failed detailed reason:"+ 
+							c.getCallStatInfo().getDetailedErrorMsgANP());
+			logger.log(Level.WARNING, 
+					"  failed Simple reason:"+ 
+							c.getCallStatInfo().getCallErrorMsg());
+			return ;
+		}
 		logger.log(Level.WARNING, "Load url: "+url);
 		// Deserialize HTTP response to concrete type.
 		long t3 = System.currentTimeMillis();
@@ -44,7 +56,7 @@ public class DebugMain {
 		logger.log(Level.WARNING, 
 				String.format("Response length before string():%d length:%d",size1, size2) );
 		
-		logger.log(Level.WARNING, "response: "+response.isRedirect());
+		
 		displayTimingInfo(c);
 		
 	}
@@ -87,8 +99,20 @@ public class DebugMain {
 		OkHttpClient client = new OkHttpClient().newBuilder()
 				.build();
 		Call c = client.newCall(request);
-		Response response = c.execute();
-		if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+		
+		Response response = null;
+		try{
+			response = c.execute();
+		}
+		catch (Exception e){
+			logger.log(Level.WARNING, 
+					"failed detailed reason:"+ 
+							c.getCallStatInfo().getDetailedErrorMsgANP());
+			logger.log(Level.WARNING, 
+					"failed Simple reason:"+ 
+							c.getCallStatInfo().getCallErrorMsg());
+			return ;
+		}
 		String result = response.body().string();
 		
 		CallStatInfo timingObj = c.getCallStatInfo();
@@ -210,7 +234,7 @@ public class DebugMain {
 			List<RequestTimingANP> timingsANP = timingObj.getTimingsANP();
 			List<String> urlsANP = timingObj.getUrlsANP();
 			logger.log(Level.WARNING, 
-					String.format("Overall delay: %d", t2-t1));
+					String.format("Call overall delay: %d ", t2-t1));
 			if(timingsANP.size() != urlsANP.size()){
 				throw new Exception("the sizes of urlsANP and timingsANP are not the same ");
 			}
@@ -228,12 +252,19 @@ public class DebugMain {
 				long respTransDelay = timing.getRespEndTimeANP() - timing.getRespStartTimeANP();
 				long overallDelay = timing.getRespEndTimeANP() - timing.getReqStartTimeANP();
 				
+				logger.log(Level.WARNING, 
+						String.format("  url:%s", curURL));
 				logger.log(Level.WARNING,
 						String.format(
-								"accurateRespTime:%b overall:%dms \n  dns:%dms \n  connSetup:%dms (handshake:%dms, tls:%dms) " + 
-										"\n  server:%dms \n  resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms ) \n for URL:%s\n", 
-								timing.isAccurateEndTimeANP(), overallDelay, dnsDelay, connSetupDelay, 
-								timing.getHandshakeTimeANP(), tlsConnDelay, timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay, curURL));
+								"  overall:%dms \n  dns:%dms \n  connSetup:%dms (handshake:%dms, tls:%dms) " + 
+										"\n  server:%dms \n  resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms ) ", 
+								overallDelay, dnsDelay, connSetupDelay, 
+								timing.getHandshakeTimeANP(), tlsConnDelay, timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay));
+				logger.log(Level.WARNING,
+						String.format("  returncode:%d\n  returnsize:%d\n"+
+								"  errormsg:%s\n  detailedMsg:%s\n", 
+								c.getCallStatInfo().getCodeANP(), c.getCallStatInfo().getSizeANP(),
+								c.getCallStatInfo().getCallErrorMsg(), c.getCallStatInfo().getDetailedErrorMsgANP()));
 			}
 	}
 	
@@ -241,7 +272,7 @@ public class DebugMain {
 		// TODO Auto-generated method stub
 		DebugMain client = new DebugMain();
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
-		client.makeRequest(url);
+		//client.makeRequest(url);
 		
 		String hostOregan = "http://52.11.26.222:3000/";
 		
@@ -277,11 +308,16 @@ public class DebugMain {
 		client.postFile(url, new File(photoPath));
 		
 		photoPath = "/Users/xpan/Documents/projects/NetProphet/tmp/largefile.jpg";
-		client.postFile(url, new File(photoPath));*/
+		client.postFile(url, new File(photoPath));
 		
 		//client.makeRequest("http://www.taobao.com");
 		client.postStream();
-		client.asynGet("http://www.taobao.com");
+		client.asynGet("http://www.taobao.com");*/
+		//client.makeRequest("http://www.snwx.com/book/5/5450/1661585.html");
+		//client.makeRequest(hostOregan + "404page");
+		client.makeRequest("http://52.11.26.221:3000/404page");
+		client.makeRequest("http://unknownaddress898989.com:3000/404page");
+		client.makeRequest("http://52.11.26.222:3001/404page");
 	}
 
 }

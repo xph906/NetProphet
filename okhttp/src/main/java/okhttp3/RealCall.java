@@ -352,7 +352,7 @@ final class RealCall implements Call {
     	//error recording routine
     	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
     	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
-    	isFailedCallANP = false;
+    	isFailedCallANP = true;
     	detailedErrorMsg = e.toString();
     	/* End NetProphet */
         throw e.getCause();
@@ -374,7 +374,7 @@ final class RealCall implements Call {
         //error recording routine
     	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
     	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
-    	isFailedCallANP = false;
+    	isFailedCallANP = true;
     	detailedErrorMsg = e.toString();
     	/* End NetProphet */
         // Give up; recovery is not possible.
@@ -398,7 +398,7 @@ final class RealCall implements Call {
         //error recording routine
     	engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
     	engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
-    	isFailedCallANP = false;
+    	isFailedCallANP = true;
     	detailedErrorMsg = e.toString();
     	/* End NetProphet */
         // Give up; recovery is not possible.
