@@ -20,304 +20,283 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.BufferedSink;
 import static okhttp3.internal.Internal.logger;
+import com.google.gson.Gson;
 
 public class DebugMain {
 
-	public void makeRequest(String url) throws Exception{
-		OkHttpClient client = new OkHttpClient().newBuilder()
-				.build();
-		
+	public static void getStringRequest(String url) throws Exception {
+		OkHttpClient client = new OkHttpClient().newBuilder().build();
+
 		// Create request for remote resource.
 		Request request = new Request.Builder().url(url).build();
+		logger.log(Level.INFO, "Load url: " + url);
 
 		// Execute the request and retrieve the response.
 		Call c = client.newCall(request);
 		Response response;
-		try{
+		try {
 			response = c.execute();
+		} catch (Exception e) {
+			logger.log(Level.INFO, "  Call failed. Error Message:"
+					+ c.getCallStatInfo().getCallErrorMsg());
+			logger.log(Level.INFO, "        Detailed Information:"
+					+ c.getCallStatInfo().getDetailedErrorMsgANP() + "\n");
+			return;
 		}
-		catch (Exception e){
-			logger.log(Level.WARNING, 
-					"Call failed:"+url+"\n  failed detailed reason:"+ 
-							c.getCallStatInfo().getDetailedErrorMsgANP());
-			logger.log(Level.WARNING, 
-					"  failed Simple reason:"+ 
-							c.getCallStatInfo().getCallErrorMsg());
-			return ;
-		}
-		logger.log(Level.WARNING, "Load url: "+url);
-		// Deserialize HTTP response to concrete type.
-		long t3 = System.currentTimeMillis();
-		ResponseBody body = response.body();
-		long size1 = body.contentLength();
-		String str = body.string();
-		long size2 = str.length();
-		long t5 = System.currentTimeMillis();
-		logger.log(Level.WARNING, 
-				String.format("Response length before string():%d length:%d",size1, size2) );
-		
-		
-		displayTimingInfo(c);
-		
-	}
-	
-	public  void sendGetRequest(String url) throws Exception{
-		OkHttpClient client = new OkHttpClient().newBuilder()
-				.build();
-		// Create request for remote resource.
-		Request request = new Request.Builder().url(url).build();
 
-		// Execute the request and retrieve the response.
-		Call c = client.newCall(request);
-		Response response = c.execute();
-		logger.log(Level.WARNING, "Load url: "+url);
+		// Retrieve the response and display timing information
 		ResponseBody body = response.body();
-		long size1 = body.contentLength();
 		String str = body.string();
-		long size2 = str.length();
-		logger.log(Level.WARNING, 
-				String.format("ResponseSize: directLength:%d fullLength:%d",size1, size2) );
-		logger.log(Level.INFO,
-				String.format("Response    : %s", str));
 		displayTimingInfo(c);
+
 	}
-	
-	public void postFile(String url, File file ) throws Exception{
+
+	public static void postJPGImage(String url, File file) throws Exception {
 		final MediaType MEDIA_TYPE_JPG = MediaType.parse("image/jpg");
 		RequestBody requestBody = new MultipartBody.Builder()
-        	.setType(MultipartBody.FORM)
-        	.addFormDataPart("title", "Square Logo")
-        	.addFormDataPart("photho", "logo-square.png",
-        			RequestBody.create(MEDIA_TYPE_JPG, file))
-        			.build();
+				.setType(MultipartBody.FORM)
+				.addFormDataPart("title", "Tesing jpg uploading")
+				.addFormDataPart("photho", file.getName(),
+						RequestBody.create(MEDIA_TYPE_JPG, file)).build();
+		Request request = new Request.Builder().url(url).post(requestBody)
+				.build();
+
+		OkHttpClient client = new OkHttpClient().newBuilder().build();
+		Call c = client.newCall(request);
+		logger.log(Level.INFO, "Post image "+file.getName()+" to url: " + url);
+		Response response = null;
+		try {
+			response = c.execute();
+		} catch (Exception e) {
+			logger.log(Level.INFO, "  Call failed. Error Message:"
+					+ c.getCallStatInfo().getCallErrorMsg());
+			logger.log(Level.INFO, "        Detailed Information: "
+					+ c.getCallStatInfo().getDetailedErrorMsgANP() + "\n");
+			return;
+		}
+		String str = response.body().string();
+		displayTimingInfo(c);
+	}
+
+	public static void postStream(int size) throws Exception {
+		final MediaType MEDIA_TYPE_MARKDOWN = MediaType
+				.parse("text/x-markdown; charset=utf-8");
+		final int postSize = size;
+		
+		OkHttpClient client = new OkHttpClient();
+		RequestBody requestBody = new RequestBody() {
+			@Override
+			public MediaType contentType() {
+				return MEDIA_TYPE_MARKDOWN;
+			}
+
+			@Override
+			public void writeTo(BufferedSink sink) throws IOException {
+				sink.writeUtf8("Numbers\n");
+				sink.writeUtf8("-------\n");
+				for (int i = 2; i <= postSize; i++) {
+					sink.writeUtf8(String.format(" * %s = %s\n", i, factor(i)));
+				}
+			}
+
+			private String factor(int n) {
+				for (int i = 2; i < n; i++) {
+					int x = n / i;
+					if (x * i == n)
+						return factor(x) + " × " + i;
+				}
+				return Integer.toString(n);
+			}
+		};
 
 		Request request = new Request.Builder()
-        	.url(url)
-        	.post(requestBody)
-        	.build();
-		
-		OkHttpClient client = new OkHttpClient().newBuilder()
+				.url("https://api.github.com/markdown/raw").post(requestBody)
 				.build();
+
 		Call c = client.newCall(request);
-		
 		Response response = null;
-		try{
+		try {
 			response = c.execute();
+		} catch (Exception e) {
+			logger.log(Level.INFO, "  Call failed. Error Message:"
+					+ c.getCallStatInfo().getCallErrorMsg());
+			logger.log(Level.INFO, "        Detailed Information: "
+					+ c.getCallStatInfo().getDetailedErrorMsgANP() + "\n");
+			return;
 		}
-		catch (Exception e){
-			logger.log(Level.WARNING, 
-					"failed detailed reason:"+ 
-							c.getCallStatInfo().getDetailedErrorMsgANP());
-			logger.log(Level.WARNING, 
-					"failed Simple reason:"+ 
-							c.getCallStatInfo().getCallErrorMsg());
-			return ;
-		}
-		String result = response.body().string();
-		
-		CallStatInfo timingObj = c.getCallStatInfo();
-		if(timingObj == null)
-			throw new Exception("timing is null!");
-		
-		long t1 = timingObj.getStartTimeANP();
-		long t2 = timingObj.getEndTimeANP();
-		List<RequestTimingANP> timingsANP = timingObj.getTimingsANP();
-		List<String> urlsANP = timingObj.getUrlsANP();
-		logger.log(Level.WARNING, 
-				String.format("Overall delay: %d", t2-t1));
-		if(timingsANP.size() != urlsANP.size()){
-			throw new Exception("the sizes of urlsANP and timingsANP are not the same ");
-		}
-		Iterator<String> urlIter = urlsANP.iterator();
-		Iterator<RequestTimingANP> timingIter = timingsANP.iterator();
-		while(urlIter.hasNext()){
-			String curURL = urlIter.next();
-			RequestTimingANP timing = timingIter.next();
-			long dnsDelay = timing.getDnsEndTimeANP() - timing.getDnsStartTimeANP();
-			long connSetupDelay = timing.getConnSetupEndTimeANP() - timing.getConnSetupStartTimeANP();
-			long reqWriteDelay = timing.getReqWriteEndTimeANP() - timing.getReqWriteStartTimeANP();
-			long respDelay = timing.getRespEndTimeANP() - timing.getReqWriteStartTimeANP();
-			long TTFB = timing.getRespStartTimeANP() - timing.getReqWriteEndTimeANP();
-			long respTransDelay = timing.getRespEndTimeANP() - timing.getRespStartTimeANP();
-			long overallDelay = timing.getRespEndTimeANP() - timing.getReqStartTimeANP();
-			logger.log(Level.WARNING,
-					String.format(
-							"accurateRespTime:%b overall:%dms \n  dns:%dms \n  connSetup:%dms (handshake:%dms) " + 
-									"\n  server:%dms \n  resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms ) \n for URL:%s\n", 
-							timing.isAccurateEndTimeANP(), overallDelay, dnsDelay, connSetupDelay, 
-							timing.getHandshakeTimeANP(), timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay, curURL));
-		}
-		
-		System.out.println(result);
+		String str = response.body().string();
+		displayTimingInfo(c);
 	}
-	
-	public void postStream() throws Exception {
-		final MediaType MEDIA_TYPE_MARKDOWN
-	      = MediaType.parse("text/x-markdown; charset=utf-8");
 
-	  	OkHttpClient client = new OkHttpClient();
-	  	RequestBody requestBody = new RequestBody() {
-	        @Override public MediaType contentType() {
-	          return MEDIA_TYPE_MARKDOWN;
-	        }
-
-	        @Override public void writeTo(BufferedSink sink) throws IOException {
-	          sink.writeUtf8("Numbers\n");
-	          sink.writeUtf8("-------\n");
-	          for (int i = 2; i <= 3997; i++) {
-	            sink.writeUtf8(String.format(" * %s = %s\n", i, factor(i)));
-	          }
-	        }
-
-	        private String factor(int n) {
-	          for (int i = 2; i < n; i++) {
-	            int x = n / i;
-	            if (x * i == n) return factor(x) + " × " + i;
-	          }
-	          return Integer.toString(n);
-	        }
-	      };
-	      
-	      Request request = new Request.Builder()
-	        .url("https://api.github.com/markdown/raw")
-	        .post(requestBody)
-	        .build();
-	      
-	      Call c= client.newCall(request);
-	      Response response = c.execute();
-	      if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-	      String str = response.body().string();
-	      displayTimingInfo(c);      
-	}
-	
-	public void asynGet(String url) throws Exception{
+	public static void asyncGetStringRequest(String url) throws Exception {
 		OkHttpClient client = new OkHttpClient();
 
-	    Request request = new Request.Builder()
-	        .url(url)
-	        .build();
-	    
-	    Call c = client.newCall(request);
-	    c.enqueue(new Callback() {
+		Request request = new Request.Builder().url(url).build();
+		logger.log(Level.INFO, "Load url asynchronously: " + url);
+
+		Call c = client.newCall(request);
+		c.enqueue(new Callback() {
 			@Override
 			public void onFailure(Call call, IOException e) {
-				System.err.println("Exception: "+e.toString());
-				try {
-					displayTimingInfo(call);
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}      
+				logger.log(Level.INFO, "  Call failed. Error Message:"
+						+ call.getCallStatInfo().getCallErrorMsg());
+				logger.log(Level.INFO, "        Detailed Information:"
+						+ call.getCallStatInfo().getDetailedErrorMsgANP() + "\n");
+				return;
 			}
-		
+
 			@Override
-			public void onResponse(Call call, Response response)  {
+			public void onResponse(Call call, Response response) {
 				try {
 					String contents = response.body().string();
 					displayTimingInfo(call);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
-	    });
-		  
+		});
+
 	}
 
-	private void displayTimingInfo(Call c) throws Exception{
+	private static void displayTimingInfo(Call c) throws Exception {
 		CallStatInfo timingObj = c.getCallStatInfo();
-			if(timingObj == null)
-				throw new Exception("timing is null!");
-			
-			long t1 = timingObj.getStartTimeANP();
-			long t2 = timingObj.getEndTimeANP();
-			List<RequestTimingANP> timingsANP = timingObj.getTimingsANP();
-			List<String> urlsANP = timingObj.getUrlsANP();
-			logger.log(Level.WARNING, 
-					String.format("Call overall delay: %d ", t2-t1));
-			if(timingsANP.size() != urlsANP.size()){
-				throw new Exception("the sizes of urlsANP and timingsANP are not the same ");
-			}
-			Iterator<String> urlIter = urlsANP.iterator();
-			Iterator<RequestTimingANP> timingIter = timingsANP.iterator();
-			while(urlIter.hasNext()){
-				String curURL = urlIter.next();
-				RequestTimingANP timing = timingIter.next();
-				long dnsDelay = timing.getDnsEndTimeANP() - timing.getDnsStartTimeANP();
-				long connSetupDelay = timing.getConnSetupEndTimeANP() - timing.getConnSetupStartTimeANP();
-				long tlsConnDelay = timing.getTlsHandshakeTimeANP();
-				long reqWriteDelay = timing.getReqWriteEndTimeANP() - timing.getReqWriteStartTimeANP();
-				long respDelay = timing.getRespEndTimeANP() - timing.getReqWriteStartTimeANP();
-				long TTFB = timing.getRespStartTimeANP() - timing.getReqWriteEndTimeANP();
-				long respTransDelay = timing.getRespEndTimeANP() - timing.getRespStartTimeANP();
-				long overallDelay = timing.getRespEndTimeANP() - timing.getReqStartTimeANP();
-				
-				logger.log(Level.WARNING, 
-						String.format("  url:%s", curURL));
-				logger.log(Level.WARNING,
-						String.format(
-								"  overall:%dms \n  dns:%dms \n  connSetup:%dms (handshake:%dms, tls:%dms) " + 
-										"\n  server:%dms \n  resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms ) ", 
-								overallDelay, dnsDelay, connSetupDelay, 
-								timing.getHandshakeTimeANP(), tlsConnDelay, timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay));
-				logger.log(Level.WARNING,
-						String.format("  returncode:%d\n  returnsize:%d\n"+
-								"  errormsg:%s\n  detailedMsg:%s\n", 
-								c.getCallStatInfo().getCodeANP(), c.getCallStatInfo().getSizeANP(),
-								c.getCallStatInfo().getCallErrorMsg(), c.getCallStatInfo().getDetailedErrorMsgANP()));
-			}
+		if (timingObj == null)
+			throw new Exception("timing is null!");
+
+		long t1 = timingObj.getStartTimeANP();
+		long t2 = timingObj.getEndTimeANP();
+		logger.log(Level.INFO,
+				String.format("Timing: call overall delay: %d ", t2 - t1));
+		
+		List<RequestTimingANP> timingsANP = timingObj.getTimingsANP();
+		List<String> urlsANP = timingObj.getUrlsANP();
+		// Debugging purpose
+		if (timingsANP.size() != urlsANP.size()) {
+			throw new Exception(
+					"the sizes of urlsANP and timingsANP are not the same ");
+		}
+		
+		// Display timing information
+		Iterator<String> urlIter = urlsANP.iterator();
+		Iterator<RequestTimingANP> timingIter = timingsANP.iterator();
+		while (urlIter.hasNext()) {
+			String curURL = urlIter.next();
+			RequestTimingANP timing = timingIter.next();
+			long dnsDelay = timing.getDnsEndTimeANP()
+					- timing.getDnsStartTimeANP();
+			long connSetupDelay = timing.getConnSetupEndTimeANP()
+					- timing.getConnSetupStartTimeANP();
+			long tlsConnDelay = timing.getTlsHandshakeTimeANP();
+			long reqWriteDelay = timing.getReqWriteEndTimeANP()
+					- timing.getReqWriteStartTimeANP();
+			long respDelay = timing.getRespEndTimeANP()
+					- timing.getReqWriteStartTimeANP();
+			long TTFB = timing.getRespStartTimeANP()
+					- timing.getReqWriteEndTimeANP();
+			long respTransDelay = timing.getRespEndTimeANP()
+					- timing.getRespStartTimeANP();
+			long overallDelay = timing.getRespEndTimeANP()
+					- timing.getReqStartTimeANP();
+
+			logger.log(Level.INFO, String.format("  timing for url:%s", curURL));
+			logger.log(
+					Level.INFO,
+					String.format(
+							"    overall:%dms \n    dns:%dms \n    connSetup:%dms (handshake:%dms, tls:%dms) "
+									+ "\n    server:%dms \n    resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms) ",
+							overallDelay, dnsDelay, connSetupDelay,
+							timing.getHandshakeTimeANP(), tlsConnDelay,
+							timing.getEstimatedServerDelay(), respDelay,
+							reqWriteDelay, TTFB, respTransDelay));
+			logger.log(Level.INFO, String.format(
+					"    response info:\n    returncode:%d\n    returnsize:%d\n"
+							+ "    errorMsg:%s\n    errorDetailedMsg:%s\n", 
+							c.getCallStatInfo().getCodeANP(), 
+							c.getCallStatInfo().getSizeANP(), 
+							c.getCallStatInfo().getCallErrorMsg(), 
+							c.getCallStatInfo().getDetailedErrorMsgANP()));
+		}
 	}
-	
+
 	public static void main(String[] args) throws Exception {
-		// TODO Auto-generated method stub
-		DebugMain client = new DebugMain();
+		String hostOregan = "52.11.26.222";
+		String httpPort = "3000";
+		String tcpPort = "3001"; //none http port
+		//"http://52.11.26.222:3000/"
+		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
+		String curDirPath = "/Users/a/Projects/Test/okhttp/";
+		
+		// OKHTTP default testing
+		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
-		//client.makeRequest(url);
+		DebugMain.getStringRequest(url);
 		
-		String hostOregan = "http://52.11.26.222:3000/";
+		/*
+		// Testing response transmission delay.
+		logger.log(Level.INFO, "Testing: response transmission delay");
+		url = oreganURL + "get-mini-file";
+		DebugMain.getStringRequest(url);
+		url = oreganURL + "get-small-file";
+		DebugMain.getStringRequest(url);
+		url = oreganURL + "get-medium-file";
+		DebugMain.getStringRequest(url);
+		url = oreganURL + "get-large-file";
+		DebugMain.getStringRequest(url);
+
+		// Testing server delay.
+		logger.log(Level.INFO, "Testing: server delay");
+		url = oreganURL + "sleep-50";
+		DebugMain.getStringRequest(url);
+		url = oreganURL + "sleep-200";
+		DebugMain.getStringRequest(url);
+		url = oreganURL + "sleep-500";
+		DebugMain.getStringRequest(url);
+		url = oreganURL + "sleep-2000";
+		DebugMain.getStringRequest(url);
+
+		// Testing real-world website
+		logger.log(Level.INFO, "Testing: real-world website delay");
+		DebugMain.getStringRequest("http://www.sina.com.cn/");
+		DebugMain.getStringRequest("http://www.douban.com");
+		DebugMain.getStringRequest("http://www.cnn.com");
+		DebugMain.getStringRequest("https://www.facebook.com");
+		DebugMain.getStringRequest("https://www.baidu.com");
+
+		// Testing uploading images
+		logger.log(Level.INFO, "Testing: post image delay");
+		url = oreganURL + "upload-photo";
+		String largePhotoPath = curDirPath+"tmp/largefile.jpg";
+		DebugMain.postJPGImage(url, new File(largePhotoPath));
+		String smallPhotoPath = curDirPath+"tmp/smallfile.jpg";
+		DebugMain.postJPGImage(url, new File(smallPhotoPath));
+		String unknowPhotoPath = curDirPath+"tmp/unknown.jpg";
+		DebugMain.postJPGImage(url, new File(unknowPhotoPath));
 		
-		/*url = hostOregan + "get-mini-file";
-		client.makeRequest(url);
-		url = hostOregan + "get-small-file";
-		client.makeRequest(url);
-		url = hostOregan + "get-medium-file";
-		client.makeRequest(url);
-		url = hostOregan + "get-large-file";
-		client.makeRequest(url);
+		// Testing streaming posting
+		logger.log(Level.INFO, "Testing: post stream");
+		DebugMain.postStream(1000);
+		DebugMain.postStream(10000);
 		
-		url = hostOregan + "sleep-50";
-		client.makeRequest(url);
-		url = hostOregan + "sleep-200";
-		client.makeRequest(url);
-		url = hostOregan + "sleep-500";
-		client.makeRequest(url);
-		url = hostOregan + "sleep-2000";
-		client.makeRequest(url);
+		// Testing redirection
+		// Note sometimes taobao incurs TLS error.
+		logger.log(Level.INFO, "Testing: redirection");
+		DebugMain.getStringRequest("http://www.taobao.com");
+		DebugMain.getStringRequest("http://www.yahoo.com");
 		
+		// Testing asynchronous get
+		logger.log(Level.INFO, "Testing: asynchronous get");
+		DebugMain.asyncGetStringRequest("https://www.yahoo.com");
 		
-		client.makeRequest("http://www.sina.com.cn/");
-		client.makeRequest("http://www.douban.com");
-		client.makeRequest("http://www.cnn.com");
-		client.makeRequest("https://www.facebook.com");
-		client.makeRequest("https://www.baidu.com");
-		
-		url = hostOregan + "upload-photo";
-		String photoPath;
-		//String photoPath = "/Users/xpan/Documents/projects/NetProphet/tmp/largefile.jpg";
-		photoPath = "/Users/xpan/Documents/projects/NetProphet/tmp/smallfile.jpeg";
-		client.postFile(url, new File(photoPath));
-		
-		photoPath = "/Users/xpan/Documents/projects/NetProphet/tmp/largefile.jpg";
-		client.postFile(url, new File(photoPath));
-		
-		//client.makeRequest("http://www.taobao.com");
-		client.postStream();
-		client.asynGet("http://www.taobao.com");*/
-		//client.makeRequest("http://www.snwx.com/book/5/5450/1661585.html");
-		//client.makeRequest(hostOregan + "404page");
-		client.makeRequest("http://52.11.26.221:3000/404page");
-		client.makeRequest("http://unknownaddress898989.com:3000/404page");
-		client.makeRequest("http://52.11.26.222:3001/404page");
+		// Testing error handling
+		DebugMain.getStringRequest("http://www.snwx.com/book/5/5450/1661585.html");
+		url = oreganURL + "404page";
+		DebugMain.getStringRequest(url);
+		url = "http://unknownaddress898989.com/" ;
+		DebugMain.getStringRequest(url);
+		url = "http://" + hostOregan + ':' + tcpPort + '/';
+		DebugMain.getStringRequest(url);
+		*/
+
 	}
 
 }

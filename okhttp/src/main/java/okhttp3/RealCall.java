@@ -18,9 +18,13 @@ package okhttp3;
 import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
+import netprophet.AsyncTaskManager;
+import netprophet.NetProphetHTTPRequestInfoObject;
+import netprophet.NetProphetIdentifierGenerator;
 import okhttp3.Request.RequestTimingANP;
 import okhttp3.Request.ResponseInfoANP;
 import okhttp3.internal.NamedRunnable;
@@ -48,15 +52,85 @@ final class RealCall implements Call {
   private List<ResponseInfoANP> infosANP;
   private long startTimeANP;
   private long endTimeANP;
+  private AsyncTaskManager asyncTaskManager;
   
   private boolean isFailedCallANP;
   private String detailedErrorMsg;
   
+  @NetProphet
   public CallStatInfo getCallStatInfo(){
 	CallStatInfo info = new CallStatInfo(urlsANP, timingsANP, 
 			startTimeANP, endTimeANP, infosANP, 
 			isFailedCallANP, detailedErrorMsg);
 	return info;
+  }
+  
+  @NetProphet
+  public void storeCallStatInfo(boolean storeToRemoteServer){
+    //this method has to run in a single thread.
+	  CallStatInfo callStatInfo = getCallStatInfo();
+	//TODO: store to local storage 
+	  
+	/*  long reqID, String url, String method, String userID,
+		long prevReqID, long nextReqID, 
+		long startTime, long endTime, long overallDelay, long dnsDelay,
+		long connDelay, long handshakeDelay, long tlsDelay, long reqWriteDelay,
+		long serverDelay, long TTFBDelay, long respTransDelay, 
+		boolean useConnCache, boolean useDNSCache, boolean useRespCache,
+		long respSize, int HTTPCode, int reqSize, 
+		boolean isFailedRequest, String errorMsg, String detailedErrorMsg,
+		long transID, int transType */
+	  
+	//store to remote server if storeToRemoteServer is true
+	Iterator<String> urlIter = urlsANP.iterator();
+	Iterator<RequestTimingANP> reqIter = timingsANP.iterator();
+	Iterator<ResponseInfoANP> respIter = infosANP.iterator();
+	NetProphetIdentifierGenerator idGen = NetProphetIdentifierGenerator.getInstance();
+	
+	//TODO: tesing on Andoird device
+	String userID = System.getProperty("os.name");;
+	long prevReqID = 0, nextReqID = 0;
+	NetProphetHTTPRequestInfoObject prevObj = null;
+	while(urlIter.hasNext()){
+		String url = urlIter.next();
+		RequestTimingANP timingObj = reqIter.next();
+		ResponseInfoANP respObj = respIter.next();
+		long curID = idGen.getNextHTTPRequestID();
+		long overallDelay = timingObj.getRespEndTimeANP() 
+				- timingObj.getReqStartTimeANP();
+		long dnsDelay = timingObj.getDnsEndTimeANP() 
+				- timingObj.getDnsStartTimeANP();
+		long connDelay = timingObj.getConnSetupEndTimeANP()
+				- timingObj.getConnSetupStartTimeANP();
+		long reqWriteDelay = timingObj.getReqWriteEndTimeANP()
+				- timingObj.getReqWriteStartTimeANP();
+		long TTFBDelay = timingObj.getRespStartTimeANP()
+				- timingObj.getReqWriteEndTimeANP();
+		long respTransDelay = timingObj.getRespEndTimeANP()
+				- timingObj.getRespStartTimeANP();
+		//TODO: cache
+		boolean useConnCache = false;
+		boolean useDNSCache =  false;
+		boolean useRespCache = false;
+		//TODO: reqSize
+		int reqSize = 0;
+		//TODO: get/post method missing
+		//TODO: userID, isSuccessfulANP
+		NetProphetHTTPRequestInfoObject obj = new 
+				NetProphetHTTPRequestInfoObject(curID, url, "GET", userID,
+						prevReqID, 0, 
+						timingObj.getReqStartTimeANP(), timingObj.getRespEndTimeANP(),
+						overallDelay, dnsDelay,
+						connDelay, timingObj.getHandshakeTimeANP(), timingObj.getTlsHandshakeTimeANP(),
+						reqWriteDelay, timingObj.getEstimatedServerDelay(), TTFBDelay, respTransDelay,
+						useConnCache, useDNSCache, useRespCache,
+						respObj.getSizeANP(), respObj.getCodeANP(), reqSize,
+						!(timingObj.isSuccessfulANP()), callStatInfo.getCallErrorMsg(), callStatInfo.getDetailedErrorMsgANP(),
+						(long)0, 0);
+	}
+	
+	
+	  
   }
   /* End NetProphet Fields */
   
@@ -72,6 +146,7 @@ final class RealCall implements Call {
 	endTimeANP = 0;
 	isFailedCallANP = false;
 	detailedErrorMsg = "";
+	asyncTaskManager = AsyncTaskManager.getInstance();
     /* End NetProphet Initialization */
   }
   

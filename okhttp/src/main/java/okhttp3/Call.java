@@ -43,7 +43,7 @@ public interface Call {
 		HTTP_ERR,
 		OTHER_ERR,
 		IN_COMPLETE_TIMING, /*hasn't executed informFinishedReadingResponse*/
-		HTTP_SERVER_ERR, /*Server not responding HTTP response*/
+		HTTP_SERVER_TIMEOUT_ERR, /*Server not responding HTTP response*/
 		NO_REQ
 	}
 	
@@ -106,7 +106,6 @@ public interface Call {
 			this.sizeANP = sizeANP;
 		}
 
-		//FIXME: more work needs to be done on analyzing detailedErrorMsgANP
 		public ErrorMsg getCallErrorMsg(){
 			Iterator<RequestTimingANP> iter = timingsANP.iterator(); 
 			RequestTimingANP lastTiming = null;
@@ -117,17 +116,6 @@ public interface Call {
 			if(urlsANP.size()==0 || lastTiming==null)
 				return ErrorMsg.NO_REQ;
 			else if(isFailedCallANP){
-				//TODO
-				//Now the HTTP_CODE should be zero
-				//debug to confirm.
-				Iterator<ResponseInfoANP> it = infoANP.iterator(); 
-				ResponseInfoANP lastInfo = null;
-				while(it.hasNext()){
-					lastInfo = it.next();
-				}
-				//above is debugging code;
-				logger.log(Level.WARNING, String.format("failedCall code: %s",
-						lastInfo==null ? "null lastInfo" : String.valueOf(lastInfo.getCodeANP())) );
 				if(lastTiming.getReqStartTimeANP()==0)
 					return ErrorMsg.OTHER_ERR;
 				else if(lastTiming.getDnsStartTimeANP()!=0 &&
@@ -143,7 +131,7 @@ public interface Call {
 						lastTiming.getRespEndTimeANP()==0)
 					return ErrorMsg.RESP_RECV_ERR;
 				else if(lastTiming.getRespStartTimeANP()==0)
-					return ErrorMsg.HTTP_SERVER_ERR;
+					return ErrorMsg.HTTP_SERVER_TIMEOUT_ERR;
 				
 				logger.log(Level.WARNING, String.format(
 						"  unknown error: %s\n"+
@@ -249,7 +237,12 @@ public interface Call {
 		}
 	}
 
-	CallStatInfo getCallStatInfo();
+	public CallStatInfo getCallStatInfo();
+	
+	//this method will store call stat information to local storage
+	// if storeToRemoteServer is set to be true, stat information 
+	// will also be sent to remote server.
+	public void storeCallStatInfo(boolean storeToRemoteServer); 
 
 	/* End NetProphet */
 
