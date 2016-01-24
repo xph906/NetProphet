@@ -194,6 +194,7 @@ public final class StreamAllocation {
         /* NetProphet */
         //ConnSetupEndTime = 0 means connection is from pool
         request.getRequestTimingANP().setConnSetupEndTimeANP(0);
+        request.getRequestTimingANP().setUseConnCache(true);
         /* End NetProphet */
         return pooledConnection;
       }

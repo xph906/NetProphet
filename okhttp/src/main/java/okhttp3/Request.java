@@ -78,11 +78,17 @@ public final class Request {
 		private long respEndTimeANP;
 		private long handshakeTimeANP;
 		private long tlsHandshakeTimeANP;
-		private boolean useCacheANP;
 		private boolean isAccurateEndTimeANP;
 		private boolean isSuccessfulANP; // set to false only when retry also
 											// failed
 		private String errorString;
+		private int reqSizeANP;
+		
+		private boolean useConnCache;
+		private boolean useDNSCache;
+		
+
+		private boolean useRespCache;
 
 		RequestTimingANP() {
 			/* Initialize NetProphet Fields */
@@ -97,10 +103,12 @@ public final class Request {
 			this.respStartTimeANP = 0;
 			this.respEndTimeANP = 0;
 			this.handshakeTimeANP = 0;
-			this.useCacheANP = false;
+			this.reqSizeANP = 0;
 			this.isSuccessfulANP = true;
 			this.isAccurateEndTimeANP = false;
-
+			this.useDNSCache = false;
+			this.useConnCache = false;
+			this.useRespCache = false;
 			errorString = "";
 		}
 
@@ -155,7 +163,6 @@ public final class Request {
 			this.errorString = errorString;
 		}
 
-		/* NetProphet Getters and Setters */
 		public long getReqStartTimeANP() {
 			return reqStartTimeANP;
 		}
@@ -235,21 +242,45 @@ public final class Request {
 		public void setRespEndTimeANP(long respEndTimeANP) {
 			this.respEndTimeANP = respEndTimeANP;
 		}
-
-		public boolean getUseCacheANP() {
-			return useCacheANP;
+		
+		public int getReqSizeANP() {
+			return reqSizeANP;
 		}
 
-		public void setUseCacheANP(boolean useCacheANP) {
-			this.useCacheANP = useCacheANP;
+		public void setReqSizeANP(int sizeANP) {
+			this.reqSizeANP = sizeANP;
 		}
-		// End
+		
+		public boolean useConnCache() {
+			return useConnCache;
+		}
+
+		public void setUseConnCache(boolean useConnCache) {
+			this.useConnCache = useConnCache;
+		}
+
+		public boolean useDNSCache() {
+			return useDNSCache;
+		}
+
+		public void setUseDNSCache(boolean useDNSCache) {
+			this.useDNSCache = useDNSCache;
+		}
+
+		public boolean useRespCache() {
+			return useRespCache;
+		}
+
+		public void setUseRespCache(boolean useRespCache) {
+			this.useRespCache = useRespCache;
+		}
 	}
 	/* End NetProphet Class*/
 	
 	/* NetProphet Field */
 	private RequestTimingANP requestTimingANP;
 	private ResponseInfoANP responseInfoANP;
+	private Call call;
 	/* End NetProphet Field*/
 
 	private Request(Builder builder) {
@@ -262,10 +293,19 @@ public final class Request {
 		/* NetProphet Initialization */
 		requestTimingANP = new RequestTimingANP();
 		responseInfoANP = new ResponseInfoANP();
+		call = null;
 		/* End NetProphet Initialization*/
 	}
 
 	/* NetProphet Getter and Setter */
+	public Call getCall() {
+		return call;
+	}
+
+	public void setCall(Call call) {
+		this.call = call;
+	}
+	
 	public RequestTimingANP getRequestTimingANP() {
 		return requestTimingANP;
 	}

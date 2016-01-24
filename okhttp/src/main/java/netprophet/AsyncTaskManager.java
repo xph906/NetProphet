@@ -1,8 +1,18 @@
 package netprophet;
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 import com.google.gson.Gson;
+import static okhttp3.internal.Internal.logger;
 
 //TODO: an asynchronous manager should be running to handle these tasks
 public class AsyncTaskManager {
@@ -35,18 +45,6 @@ public class AsyncTaskManager {
 	}
   }
   
-  public class postCallInfoToServerTask implements Runnable{
-    
-	public postCallInfoToServerTask(){
-    	
-    }
-	  
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		
-	}
-	  
-  }
+  
   
 }

@@ -22,8 +22,11 @@ import java.net.ProtocolException;
 import java.net.Proxy;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
+
 import okhttp3.Address;
 import okhttp3.CertificatePinner;
 import okhttp3.Connection;
@@ -50,7 +53,6 @@ import okio.Okio;
 import okio.Sink;
 import okio.Source;
 import okio.Timeout;
-
 import static java.net.HttpURLConnection.HTTP_MOVED_PERM;
 import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 import static java.net.HttpURLConnection.HTTP_MULT_CHOICE;
@@ -67,6 +69,7 @@ import static okhttp3.internal.http.StatusLine.HTTP_CONTINUE;
 import static okhttp3.internal.http.StatusLine.HTTP_PERM_REDIRECT;
 import static okhttp3.internal.http.StatusLine.HTTP_TEMP_REDIRECT;
 
+import static okhttp3.internal.Internal.logger;
 /**
  * Handles a single HTTP request/response pair. Each HTTP engine follows this lifecycle: <ol> <li>It
  * is created. <li>The HTTP request message is sent with sendRequest(). Once the request is sent it
@@ -238,14 +241,8 @@ public final class HttpEngine {
     // We need the network to satisfy this request. Possibly for validating a conditional GET.
     boolean success = false;
     try {
-      /* NetProphet */
-      //userRequest.getRequestTimingANP().
-      //	setConnSetupStartTimeANP(System.currentTimeMillis());
-      /* End NetProphet */	
       httpStream = connect();
       /* NetProphet */
-      //userRequest.getRequestTimingANP().
-      //	setConnSetupEndTimeANP(System.currentTimeMillis());
       userRequest.getRequestTimingANP().setReqWriteStartTimeANP(
 				System.currentTimeMillis());
       /* End NetProphet */	
@@ -253,6 +250,11 @@ public final class HttpEngine {
 
       if (writeRequestHeadersEagerly()) {
         long contentLength = OkHeaders.contentLength(request);
+        /* NetProphet */
+        userRequest.getRequestTimingANP().setReqSizeANP((int)contentLength);
+        logger.log(Level.INFO, "DEBUG REQ LENGTH(writeRequestHeadersEagerly): "
+        		+contentLength);
+        /* End NetProphet */
         if (bufferRequestBody) {
           if (contentLength > Integer.MAX_VALUE) {
             throw new IllegalStateException("Use setFixedLengthStreamingMode() or "
@@ -592,6 +594,11 @@ public final class HttpEngine {
         if (OkHeaders.contentLength(networkRequest) == -1
             && requestBodyOut instanceof RetryableSink) {
           long contentLength = ((RetryableSink) requestBodyOut).contentLength();
+          /* NetProphet */
+          userRequest.getRequestTimingANP().setReqSizeANP((int)contentLength);
+          logger.log(Level.INFO, "DEBUG REQ LENGTH(readResponse): "
+          		+contentLength);
+          /* End NetProphet */
           networkRequest = networkRequest.newBuilder()
               .header("Content-Length", Long.toString(contentLength))
               .build();
@@ -611,7 +618,7 @@ public final class HttpEngine {
           httpStream.writeRequestBody((RetryableSink) requestBodyOut);
         }
       }
-
+      
       networkResponse = readNetworkResponse();
     }
 
@@ -622,7 +629,7 @@ public final class HttpEngine {
       if (validate(cacheResponse, networkResponse)) {
         /* NetProphet */
     	//TODO: testing cache response label  
-    	userRequest.getRequestTimingANP().setUseCacheANP(true);
+    	userRequest.getRequestTimingANP().setUseRespCache(true);
     	/* End NetProphet*/  
         userResponse = cacheResponse.newBuilder()
             .request(userRequest)
@@ -734,6 +741,13 @@ public final class HttpEngine {
         request.body().writeTo(bufferedRequestBody);
         bufferedRequestBody.close();
       }
+      /* NetProphet */
+      if( userRequest!=null &&
+    	  userRequest.getRequestTimingANP()!=null &&
+    	  request.body() != null){
+    	  userRequest.getRequestTimingANP().setReqSizeANP((int)request.body().contentLength());
+      }
+      /* End NetProphet */
 
       Response response = readNetworkResponse();
 

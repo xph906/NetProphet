@@ -37,9 +37,13 @@ public class NetProphetHTTPRequestInfoObject {
 	// 5. Request/Response information.
 	private long respSize;
 	private int HTTPCode;
-	private int reqSize;
+	private int reqSize;  /* if post streaming data, the reqSize is 0 */
 	
 	// 6. Error information
+	/* Note for a redirection chain, an error can only be at the last request
+	 * So for all the requests in a redirection chain, the error related information
+	 * will be the same: the call's error information (last request).
+	 * */
 	private boolean isFailedRequest;
 	/* 
 	 * NOERROR,
@@ -59,6 +63,9 @@ public class NetProphetHTTPRequestInfoObject {
 	// 7. Transaction information
 	private long transID;
 	private int transType;
+	
+	// 8. Networking Information
+	
 
 
 	public NetProphetHTTPRequestInfoObject(long reqID, String url, String method, String userID,

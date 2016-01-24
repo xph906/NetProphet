@@ -20,6 +20,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.BufferedSink;
 import static okhttp3.internal.Internal.logger;
+
 import com.google.gson.Gson;
 
 public class DebugMain {
@@ -128,6 +129,30 @@ public class DebugMain {
 		displayTimingInfo(c);
 	}
 
+	public static void postJSON(String jsonOBJ, String url) throws Exception {
+		logger.log(Level.INFO, "prepares send json object: "+jsonOBJ);
+		RequestBody body = RequestBody.create(
+				MediaType.parse("application/json; charset=utf-8"), jsonOBJ);
+		Request request = new Request.Builder()
+			.url(url)
+			.post(body)
+			.build();
+		OkHttpClient client = new OkHttpClient();
+		Call c = client.newCall(request);
+		try {
+			Response response = c.execute();
+			String str = response.body().string();
+			logger.log(Level.INFO, 
+					String.format("postCallInfoToServerTask succeed: %s", str));
+			
+		} catch (IOException e) {
+			logger.log(Level.WARNING, 
+					String.format("postCallInfoToServerTask failed: %s", e.toString()));
+		}
+		
+		displayTimingInfo(c);
+	}
+	
 	public static void asyncGetStringRequest(String url) throws Exception {
 		OkHttpClient client = new OkHttpClient();
 
@@ -160,6 +185,8 @@ public class DebugMain {
 
 	private static void displayTimingInfo(Call c) throws Exception {
 		CallStatInfo timingObj = c.getCallStatInfo();
+		//c.storeCallStatInfo(true);
+		
 		if (timingObj == null)
 			throw new Exception("timing is null!");
 
@@ -209,9 +236,10 @@ public class DebugMain {
 							timing.getEstimatedServerDelay(), respDelay,
 							reqWriteDelay, TTFB, respTransDelay));
 			logger.log(Level.INFO, String.format(
-					"    response info:\n    returncode:%d\n    returnsize:%d\n"
+					"    response info:\n    returncode:%d\n    reqsize:%d\n    returnsize:%d\n"
 							+ "    errorMsg:%s\n    errorDetailedMsg:%s\n", 
-							c.getCallStatInfo().getCodeANP(), 
+							c.getCallStatInfo().getFinalCodeANP(), 
+							timing.getReqSizeANP(),
 							c.getCallStatInfo().getSizeANP(), 
 							c.getCallStatInfo().getCallErrorMsg(), 
 							c.getCallStatInfo().getDetailedErrorMsgANP()));
@@ -224,12 +252,24 @@ public class DebugMain {
 		String tcpPort = "3001"; //none http port
 		//"http://52.11.26.222:3000/"
 		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
-		String curDirPath = "/Users/a/Projects/Test/okhttp/";
+		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
 		
 		// OKHTTP default testing
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
+		//DebugMain.getStringRequest(url);
+		url = oreganURL + "get-large-file";
 		DebugMain.getStringRequest(url);
+		
+		url = oreganURL + "upload-photo";
+		String largePhotoPath = curDirPath+"tmp/largefile.jpg";
+		//DebugMain.postJPGImage(url, new File(largePhotoPath));
+		String smallPhotoPath = curDirPath+"tmp/smallfile.jpg";
+		DebugMain.postJPGImage(url, new File(smallPhotoPath));
+		
+		logger.log(Level.INFO, "Testing: redirection");
+		//DebugMain.getStringRequest("http://www.taobao.com");
+		DebugMain.getStringRequest("http://www.yahoo.com");
 		
 		/*
 		// Testing response transmission delay.
@@ -271,6 +311,12 @@ public class DebugMain {
 		DebugMain.postJPGImage(url, new File(smallPhotoPath));
 		String unknowPhotoPath = curDirPath+"tmp/unknown.jpg";
 		DebugMain.postJPGImage(url, new File(unknowPhotoPath));
+		
+		// Testing JSON posting
+		logger.log(Level.INFO, "Testing: post JSON string");
+		String jsonObj = "{'reqID':1453574957297,'url':'https://api.github.com/markdown/raw','method':'GET','userID':'Mac OS X','prevReqID':0,'nextReqID':0,'startTime':1453574955855,'endTime':1453574957294,'overallDelay':1439,'dnsDelay':34,'connDelay':787,'handshakeDelay':62,'tlsDelay':686,'reqWriteDelay':103,'serverDelay':410,'TTFBDelay':473,'respTransDelay':22,'useConnCache':false,'useDNSCache':false,'useRespCache':false,'respSize':25871,'HTTPCode':200,'reqSize':0,'isFailedRequest':false,'errorMsg':'NOERROR','detailedErrorMsg':'','transID':0,'transType':0}";	
+		url = oreganURL + "post-callinfo";
+		DebugMain.postJSON(jsonObj, url);
 		
 		// Testing streaming posting
 		logger.log(Level.INFO, "Testing: post stream");

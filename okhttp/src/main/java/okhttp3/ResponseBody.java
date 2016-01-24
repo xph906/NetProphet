@@ -92,6 +92,9 @@ public abstract class ResponseBody implements Closeable {
 	  if(comments != "")
 		  userRequest.getResponseInfoANP().setUserComments(comments);
 	  userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
+	  if(userRequest.getCall() != null)
+		  //TODO: change parameter to false after debugging
+		  userRequest.getCall().storeCallStatInfo(true);
     }
     else
       logger.log(Level.SEVERE, "userRequest has not been set to ResponseBody");

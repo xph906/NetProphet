@@ -112,7 +112,6 @@ public interface Call {
 			while(iter.hasNext()){
 				lastTiming = iter.next();
 			}
-			
 			if(urlsANP.size()==0 || lastTiming==null)
 				return ErrorMsg.NO_REQ;
 			else if(isFailedCallANP){
@@ -133,7 +132,7 @@ public interface Call {
 				else if(lastTiming.getRespStartTimeANP()==0)
 					return ErrorMsg.HTTP_SERVER_TIMEOUT_ERR;
 				
-				logger.log(Level.WARNING, String.format(
+				logger.log(Level.INFO, String.format(
 						"  unknown error: %s\n"+
 						"  dns: %d, %d       \n"+
 						"  conn:%d, %d      \n"+
@@ -146,7 +145,7 @@ public interface Call {
 				return ErrorMsg.OTHER_ERR;
 			}
 			//non-zero error code means the connection succeed
-			else if(getCodeANP() >= 300 ) 
+			else if(getFinalCodeANP() >= 300 ) 
 				return ErrorMsg.HTTP_ERR;
 			
 			if(!lastTiming.isAccurateEndTimeANP())
@@ -164,7 +163,7 @@ public interface Call {
 			this.infoANP = infoANP;
 		}
 
-		public int getCodeANP() {
+		public int getFinalCodeANP() {
 			if(infoANP == null)
 				return 0;
 			int result = 0;
