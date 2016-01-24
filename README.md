@@ -1,70 +1,33 @@
-OkHttp
-======
+Steps to import into Eclipse
+  1. mvn eclipse:eclipse
+  2. mvn clean package
+  3. Modify ./okhttp/pom.xml to add the following snippet of code within <dependencies></dependencies>: 
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.2.4</version>
+    </dependency> 
+  4. mkdir tmp
 
-An HTTP & HTTP/2 client for Android and Java applications. For more information see [the website][1] and [the wiki][2].
-
-Download
---------
-
-Download [the latest JAR][3] or grab via Maven:
-```xml
-<dependency>
-  <groupId>com.squareup.okhttp3</groupId>
-  <artifactId>okhttp</artifactId>
-  <version>3.0.1</version>
-</dependency>
-```
-or Gradle:
-```groovy
-compile 'com.squareup.okhttp3:okhttp:3.0.1'
-```
-
-Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
+  In eclipse
+  5. Install Maven plugin in Eclipse.
+  6. Import the project as Maven project (Import -> Maven).
+  7. Window -> Preferences -> Maven -> Errors/Warnings -> Plugin execution not covered by lifecycle configuration = Warning.
 
 
-MockWebServer
--------------
+Code:
+  All added/modified codes in OKHTTP should be within /*NetProphet*/ /* End NetProphet */
+  All added files should be in package netprophet. (okhttp/src/main/java/netprophet/)
 
-A library for testing HTTP, HTTPS, HTTP/2.0, and SPDY clients.
+Debugging:
+  1. import static okhttp3.internal.Internal.logger;
+  2. logger.log(Level.INFO, "some strings");
 
-MockWebServer coupling with OkHttp is essential for proper testing of HTTP/2.0 so that code can be shared.
-
-### Download
-
-Download [the latest JAR][4] or grab via Maven:
-```xml
-<dependency>
-  <groupId>com.squareup.okhttp3</groupId>
-  <artifactId>mockwebserver</artifactId>
-  <version>3.0.1</version>
-  <scope>test</scope>
-</dependency>
-```
-or Gradle:
-```groovy
-testCompile 'com.squareup.okhttp3:mockwebserver:3.0.1'
-```
+Testing and Packaging:
+  1. samples/DegugMain.java has main function to drive OkHTTP in desktop
+  2. Make sure it passes OkHTTP's testing (do: mvn clean package), everytime makes a change.  ***
+     Note that it will fail the testing if you enable logger, so close or comment logging statements before packaging. 
+  3. After finishing "mvn clean package", copy the jar file (okhttp/target/okhttp-3.1.0-SNAPSHOT.jar) to Android Studio.
 
 
 
-License
--------
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
-
- [1]: http://square.github.io/okhttp
- [2]: https://github.com/square/okhttp/wiki
- [3]: https://search.maven.org/remote_content?g=com.squareup.okhttp3&a=okhttp&v=LATEST
- [4]: https://search.maven.org/remote_content?g=com.squareup.okhttp3&a=mockwebserver&v=LATEST
- [snap]: https://oss.sonatype.org/content/repositories/snapshots/
