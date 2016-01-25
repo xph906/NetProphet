@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import android.telephony.TelephonyManager;
+import android.content.Context;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -68,7 +69,7 @@ final class RealCall implements Call {
 	
 	private boolean isCallStatInfoSavedLocally;
 	private boolean isCallStatInfoSavedRemotely;
-
+	private Context context;
 	@NetProphet
 	public CallStatInfo getCallStatInfo() {
 		CallStatInfo info = new CallStatInfo(urlsANP, timingsANP, startTimeANP,
@@ -165,7 +166,7 @@ final class RealCall implements Call {
 		}
 		
 		//@GUANGYAO
-		if(!isCallStatInfoSavedLocally){
+		if(!isCallStatInfoSavedLocally && context!=null){
 			//TODO: store to local storage
 			
 			isCallStatInfoSavedLocally = true;
@@ -189,7 +190,10 @@ final class RealCall implements Call {
 		asyncTaskManager = AsyncTaskManager.getInstance();
 		isCallStatInfoSavedLocally = false;
 		isCallStatInfoSavedRemotely = false;
+		
 		originalRequest.setCall(this);
+		
+		context = client.getContext();
 		/* End NetProphet Initialization */
 	}
 

@@ -23,11 +23,14 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
+import android.content.Context;
 import okhttp3.internal.Internal;
 import okhttp3.internal.InternalCache;
 import okhttp3.internal.RouteDatabase;
@@ -143,6 +146,13 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   final int readTimeout;
   final int writeTimeout;
 
+  /* NetProphet */
+  Context context;
+  /* End NetProphet*/
+  public OkHttpClient(Context context) {
+    this(new Builder());
+    this.context = context;
+  }
   public OkHttpClient() {
     this(new Builder());
   }
@@ -159,6 +169,10 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
     this.cache = builder.cache;
     this.internalCache = builder.internalCache;
     this.socketFactory = builder.socketFactory;
+    
+    /* NetProphet */
+    this.context = null;
+    /* End NetProphet */
 
     boolean isTLS = true;
     for (ConnectionSpec spec : connectionSpecs) {
@@ -190,7 +204,18 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
     this.writeTimeout = builder.writeTimeout;
   }
 
-  /** Default connect timeout (in milliseconds). */
+  /* NetProphet */
+  public Context getContext() {
+	return context;
+}
+
+public void setContext(Context context) {
+	this.context = context;
+}
+
+  /* NetProphet */
+
+/** Default connect timeout (in milliseconds). */
   public int connectTimeoutMillis() {
     return connectTimeout;
   }
