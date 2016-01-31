@@ -23,12 +23,14 @@ import java.util.List;
 import java.util.logging.Level;
 
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.content.Context;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import netprophet.AsyncTaskManager;
+import netprophet.DatabaseHandler;
 import netprophet.NetProphetHTTPRequestInfoObject;
 import netprophet.NetProphetIdentifierGenerator;
 import netprophet.PostCallInfoTask;
@@ -168,7 +170,8 @@ final class RealCall implements Call {
 		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
 			//TODO: store to local storage
-			
+			DatabaseHandler dbHandler = new DatabaseHandler(context);
+			asyncTaskManager.postTask(dbHandler.getBatchInsertTask(objList));
 			isCallStatInfoSavedLocally = true;
 		}
 	}
