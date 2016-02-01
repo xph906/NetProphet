@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
+import netprophet.NetProphetPropertyManager;
 import okhttp3.Call;
 import okhttp3.Call.CallStatInfo;
 import okhttp3.Callback;
@@ -248,7 +249,7 @@ public class DebugMain {
 	}
 
 	public static void main(String[] args) throws Exception {
-		String hostOregan = "52.11.26.222";
+		String hostOregan = "garuda.cs.northwestern.edu";
 		String httpPort = "3000";
 		String tcpPort = "3001"; //none http port
 		//"http://52.11.26.222:3000/"
@@ -259,27 +260,33 @@ public class DebugMain {
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
-		//DebugMain.getStringRequest(url);
-		url = oreganURL + "get-large-file";
 		DebugMain.getStringRequest(url);
+		
+		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
+		logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
 		
 		DebugMain.getStringRequest("http://www.sina.com.cn/");
 		DebugMain.getStringRequest("http://www.douban.com");
 		DebugMain.getStringRequest("http://www.cnn.com");
 		DebugMain.getStringRequest("https://www.facebook.com");
 		DebugMain.getStringRequest("https://www.baidu.com");
-		
-		url = oreganURL + "upload-photo";
-		String largePhotoPath = curDirPath+"tmp/largefile.jpg";
-		//DebugMain.postJPGImage(url, new File(largePhotoPath));
-		String smallPhotoPath = curDirPath+"tmp/smallfile.jpg";
-		DebugMain.postJPGImage(url, new File(smallPhotoPath));
-		
-		logger.log(Level.INFO, "Testing: redirection");
-		//DebugMain.getStringRequest("http://www.taobao.com");
-		DebugMain.getStringRequest("http://www.yahoo.com");
-		
 		/*
+		// Testing error handling
+		DebugMain.getStringRequest("http://www.snwx.com/book/5/5450/1661585.html");
+		url = oreganURL + "404page";
+		DebugMain.getStringRequest(url);
+		url = "http://unknownaddress898989.com/" ;
+		DebugMain.getStringRequest(url);
+		url = "http://" + hostOregan + ':' + tcpPort + '/';
+		DebugMain.getStringRequest(url);
+
+		DebugMain.getStringRequest("http://www.sina.com.cn/");
+		DebugMain.getStringRequest("http://www.douban.com");
+		DebugMain.getStringRequest("http://www.cnn.com");
+		DebugMain.getStringRequest("https://www.facebook.com");
+		DebugMain.getStringRequest("https://www.baidu.com");
+		
+		
 		// Testing response transmission delay.
 		logger.log(Level.INFO, "Testing: response transmission delay");
 		url = oreganURL + "get-mini-file";

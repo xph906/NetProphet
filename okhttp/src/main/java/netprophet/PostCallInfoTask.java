@@ -42,10 +42,10 @@ public class PostCallInfoTask implements Runnable{
 			Response response = client.newCall(request).execute();
 			String str = response.body().string();
 			//logger.log(Level.INFO, 
-			//		String.format("postCallInfoToServerTask succeed: %s", str));
+			//		String.format("DEBUG postCallInfoToServerTask succeed: %s", str));
 		} catch (IOException e) {
-			//logger.log(Level.WARNING, 
-			//		String.format("postCallInfoToServerTask failed: %s", e.toString()));
+			logger.log(Level.WARNING, 
+					String.format("postCallInfoToServerTask %s failed: %s",this.serverURL, e.toString()));
 		}
 	}
 	  

@@ -16,7 +16,9 @@
 package okhttp3;
 
 import java.io.Closeable;
+
 import static okhttp3.internal.Internal.logger;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,6 +26,7 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.logging.Level;
 
+import netprophet.NetProphetPropertyManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import okhttp3.internal.Util;
@@ -82,6 +85,7 @@ public abstract class ResponseBody implements Closeable {
   //   3. user comments: if the call triggers an Exception, 
   //         clients can put error information into the comments.
   public void informFinishedReadingResponse(int size, String comments, int respEndTime){
+	NetProphetPropertyManager propertyManager = NetProphetPropertyManager.getInstance();
     if(userRequest != null){
       if(respEndTime == 0)
     	  userRequest.getRequestTimingANP().setRespEndTimeANP(System.currentTimeMillis());
@@ -93,8 +97,7 @@ public abstract class ResponseBody implements Closeable {
 		  userRequest.getResponseInfoANP().setUserComments(comments);
 	  userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
 	  if(userRequest.getCall() != null)
-		  //TODO: change parameter to false after debugging
-		  userRequest.getCall().storeCallStatInfo(true);
+		  userRequest.getCall().storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
     }
     else
       logger.log(Level.SEVERE, "userRequest has not been set to ResponseBody");

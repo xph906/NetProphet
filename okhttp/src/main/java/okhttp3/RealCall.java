@@ -16,7 +16,9 @@
 package okhttp3;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.ProtocolException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,6 +35,7 @@ import netprophet.AsyncTaskManager;
 import netprophet.DatabaseHandler;
 import netprophet.NetProphetHTTPRequestInfoObject;
 import netprophet.NetProphetIdentifierGenerator;
+import netprophet.NetProphetPropertyManager;
 import netprophet.PostCallInfoTask;
 import okhttp3.Request.RequestTimingANP;
 import okhttp3.Request.ResponseInfoANP;
@@ -59,6 +62,7 @@ final class RealCall implements Call {
 	HttpEngine engine;
 
 	/* NetProphet Fields */
+	private NetProphetPropertyManager propertyManager;
 	private List<String> urlsANP;
 	private List<RequestTimingANP> timingsANP;
 	private List<ResponseInfoANP> infosANP;
@@ -85,6 +89,7 @@ final class RealCall implements Call {
 			return;
 		else if(!storeToRemoteServer && isCallStatInfoSavedLocally)
 			return ;
+		
 		CallStatInfo callStatInfo = getCallStatInfo();	
 		Iterator<String> urlIter = urlsANP.iterator();
 		Iterator<RequestTimingANP> reqIter = timingsANP.iterator();
@@ -95,12 +100,23 @@ final class RealCall implements Call {
 				.getInstance();
 		Gson gson = new GsonBuilder().create();
 		
-		// TODO: use getDeviceId to get user id on Android.
-		//final TelephonyManager mTelephony = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);            
 		//String myAndroidDeviceId = mTelephony.getDeviceId(); 
-		String userID = System.getProperty("java.vm.name");
+		String platformType = System.getProperty("java.vm.name");
+		String userID = "non-android-user";
+		if(context!=null && platformType=="Dalvik"){
+			try{
+				TelephonyManager mTelephony = 
+						(TelephonyManager) (context.getSystemService(Context.TELEPHONY_SERVICE)); 
+				userID = mTelephony.getDeviceId(); 
+			}
+			catch(Exception e){
+				logger.log(Level.SEVERE,  "error in getting device id: "+e.toString());
+				userID = "error-device-id";
+			}
+			
+		}
 		
-		logger.log(Level.INFO, "os.name: "+userID);
+		//logger.log(Level.INFO, "DEBUG userID: "+userID+" "+platformType+" "+context);
 		long prevReqID = 0;
 		NetProphetHTTPRequestInfoObject prevObj = null;
 		while (urlIter.hasNext()) {
@@ -112,6 +128,19 @@ final class RealCall implements Call {
 			}
 			String url = methodAndURL[1];
 			String method = methodAndURL[0];
+			
+			//we do not store requests sent to NetProphet server
+			URL urlObj = null;
+			try {
+				urlObj = new URL(url);
+				if(propertyManager.getServerHost().toLowerCase()
+						== urlObj.getHost().toLowerCase()){
+					return ;
+				}
+			} catch (Exception e) {
+				logger.log(Level.WARNING, "error in parsing URL: "+ url+" because "+e);
+				return;
+			}
 			
 			RequestTimingANP timingObj = reqIter.next();
 			ResponseInfoANP respObj = respIter.next();
@@ -154,22 +183,20 @@ final class RealCall implements Call {
 			prevObj = obj;
 			prevReqID = curID;		
 		}
-
-		//TODO: move hard-coded contents to configure file.
 		if(storeToRemoteServer && !isCallStatInfoSavedRemotely){
+			logger.log(Level.INFO, "DEBUG: prepare store to remote Server ");
 			Iterator<NetProphetHTTPRequestInfoObject> objIter =
 					objList.iterator();
 			while(objIter.hasNext()){
 				String objStr = gson.toJson(objIter.next());
 				asyncTaskManager.postTask(
-						new PostCallInfoTask(objStr, "http://garuda.cs.northwestern.edu:3000/post-callinfo"));
+						new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
 			}
 			isCallStatInfoSavedRemotely = true;
 		}
 		
 		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
-			//TODO: store to local storage
 			DatabaseHandler dbHandler = new DatabaseHandler(context);
 			asyncTaskManager.postTask(dbHandler.getBatchInsertTask(objList));
 			isCallStatInfoSavedLocally = true;
@@ -195,7 +222,7 @@ final class RealCall implements Call {
 		isCallStatInfoSavedRemotely = false;
 		
 		originalRequest.setCall(this);
-		
+		propertyManager = NetProphetPropertyManager.getInstance();
 		context = client.getContext();
 		/* End NetProphet Initialization */
 	}
@@ -515,6 +542,7 @@ final class RealCall implements Call {
 						.setErrorString(e.toString());
 				isFailedCallANP = true;
 				detailedErrorMsg = e.toString();
+				storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
 				/* End NetProphet */
 				throw e.getCause();
 			} catch (RouteException e) {
@@ -541,6 +569,7 @@ final class RealCall implements Call {
 						.setErrorString(e.toString());
 				isFailedCallANP = true;
 				detailedErrorMsg = e.toString();
+				storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
 				/* End NetProphet */
 				// Give up; recovery is not possible.
 				throw e.getLastConnectException();
@@ -568,6 +597,7 @@ final class RealCall implements Call {
 						.setErrorString(e.toString());
 				isFailedCallANP = true;
 				detailedErrorMsg = e.toString();
+				storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
 				/* End NetProphet */
 				// Give up; recovery is not possible.
 				throw e;
