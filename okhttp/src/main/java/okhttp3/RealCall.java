@@ -162,7 +162,7 @@ final class RealCall implements Call {
 			while(objIter.hasNext()){
 				String objStr = gson.toJson(objIter.next());
 				asyncTaskManager.postTask(
-						new PostCallInfoTask(objStr, "http://52.11.26.222:3000/post-callinfo"));
+						new PostCallInfoTask(objStr, "http://garuda.cs.northwestern.edu:3000/post-callinfo"));
 			}
 			isCallStatInfoSavedRemotely = true;
 		}

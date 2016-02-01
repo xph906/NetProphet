@@ -14,7 +14,6 @@ Steps to import into Eclipse
   6. Import the project as Maven project (Import -> Maven).
   7. Window -> Preferences -> Maven -> Errors/Warnings -> Plugin execution not covered by lifecycle configuration = Warning.
 
-
 Code:
   All added/modified codes in OKHTTP should be within /*NetProphet*/ /* End NetProphet */
   All added files should be in package netprophet. (okhttp/src/main/java/netprophet/)
@@ -28,6 +27,4 @@ Testing and Packaging:
   2. Make sure it passes OkHTTP's testing (do: mvn clean package), everytime makes a change.  ***
      Note that it will fail the testing if you enable logger, so close or comment logging statements before packaging. 
   3. After finishing "mvn clean package", copy the jar file (okhttp/target/okhttp-3.1.0-SNAPSHOT.jar) to Android Studio.
-
-
 

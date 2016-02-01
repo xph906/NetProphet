@@ -42,6 +42,7 @@ public class DebugMain {
 					+ c.getCallStatInfo().getCallErrorMsg());
 			logger.log(Level.INFO, "        Detailed Information:"
 					+ c.getCallStatInfo().getDetailedErrorMsgANP() + "\n");
+			displayTimingInfo(c);
 			return;
 		}
 
@@ -185,7 +186,7 @@ public class DebugMain {
 
 	private static void displayTimingInfo(Call c) throws Exception {
 		CallStatInfo timingObj = c.getCallStatInfo();
-		//c.storeCallStatInfo(true);
+		c.storeCallStatInfo(true);
 		
 		if (timingObj == null)
 			throw new Exception("timing is null!");
