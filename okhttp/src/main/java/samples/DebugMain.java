@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import netprophet.NetProphetPropertyManager;
 import okhttp3.Call;
@@ -256,7 +258,30 @@ public class DebugMain {
 		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
 		
-		// OKHTTP default testing
+		String IPADDRESS_PATTERN =
+                "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
+		String LATENCY_PATTERN =
+                "[0-9]+(\\.[0-9]+)?";
+		Pattern mIPReg = Pattern.compile(IPADDRESS_PATTERN);
+		Pattern mLatReg = Pattern.compile(LATENCY_PATTERN);
+		String str = "2  * 172.18.136.228  49.903 ms  69.088 ms  89.250 ms  108.985 ms  118.973 ms";
+		Matcher matcher = mIPReg.matcher(str);
+		String mIP = null;
+		int index = 0;
+		if(matcher.find()){
+		    mIP = matcher.group();
+		    index = matcher.end();
+		}
+		logger.info("found IP: "+mIP);
+		matcher = mLatReg.matcher(str);
+		int count=0;
+		while(matcher.find(index)){
+		    //logger.info("AA "+matcher.region(matcher.start(),matcher.end() ).toString());
+		    logger.info(String.format(
+		    		"float:%f\n",Float.valueOf( matcher.group()) ));
+		    index = matcher.end() ;		            
+		}
+		
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";

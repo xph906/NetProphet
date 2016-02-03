@@ -35,6 +35,7 @@ import netprophet.AsyncTaskManager;
 import netprophet.DatabaseHandler;
 import netprophet.NetProphetHTTPRequestInfoObject;
 import netprophet.NetProphetIdentifierGenerator;
+import netprophet.NetProphetNetworkData;
 import netprophet.NetProphetPropertyManager;
 import netprophet.PostCallInfoTask;
 import okhttp3.Request.RequestTimingANP;
@@ -183,6 +184,11 @@ final class RealCall implements Call {
 			prevObj = obj;
 			prevReqID = curID;		
 		}
+		//TODO: this NetProphetNetworkObj is a bogus one;
+		/* long reqID, String type, String name, int wifiSignal, int cellSignal, 
+		 * int mcc, int mnc, int lac, int firstMileLat, int firstMilePLR */
+		NetProphetNetworkData networkData = new NetProphetNetworkData((long)0, "","", 0, 0, 0, 0, 0, 0, 0);
+		
 		if(storeToRemoteServer && !isCallStatInfoSavedRemotely){
 			logger.log(Level.INFO, "DEBUG: prepare store to remote Server ");
 			Iterator<NetProphetHTTPRequestInfoObject> objIter =
@@ -200,6 +206,7 @@ final class RealCall implements Call {
 			DatabaseHandler dbHandler = new DatabaseHandler(context);
 			asyncTaskManager.postTask(dbHandler.getBatchInsertTask(objList));
 			isCallStatInfoSavedLocally = true;
+			//TODO: store NetProphetNetworkData data into database.	
 		}
 	}
 

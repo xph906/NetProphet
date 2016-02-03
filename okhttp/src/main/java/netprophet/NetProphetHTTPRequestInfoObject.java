@@ -65,8 +65,6 @@ public class NetProphetHTTPRequestInfoObject {
 	private int transType;
 	
 	// 8. Networking Information
-	
-
 
 	public NetProphetHTTPRequestInfoObject(long reqID, String url, String method, String userID,
 			long prevReqID, long nextReqID, 
