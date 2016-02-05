@@ -1,5 +1,6 @@
 package netprophet;
 
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -31,323 +32,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(createTable(NetProphetData.TABLE_NAME, NetProphetData.COLUMNS));
+        db.execSQL(createTable(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.COLUMNS));
+        db.execSQL(createTable(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.COLUMNS));
         //db.execSQL("CREATE INDEX request_id_index on " + NetProphetData.TABLE_NAME + "(" + NetProphetData.REQUEST_ID + ")");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
-    }
-
-    public void addRequestInfo(NetProphetHTTPRequestInfoObject infoObject) {
-        db_lock.lock();
-        try {
-            SQLiteDatabase db = this.getWritableDatabase();
-            db.beginTransaction();
-            try {
-                ContentValues values = new ContentValues();
-                checkRequestInfo(infoObject);
-
-                values.put(NetProphetData.REQUEST_ID, infoObject.getReqID());
-                values.put(NetProphetData.URL, infoObject.getUrl());
-                values.put(NetProphetData.METHOD, infoObject.getMethod());
-                values.put(NetProphetData.USER_ID, infoObject.getUserID());
-
-                values.put(NetProphetData.PREV_REQ_ID, infoObject.getPrevReqID());
-                values.put(NetProphetData.NEXT_REQ_ID, infoObject.getNextReqID());
-
-                values.put(NetProphetData.START_TIME, infoObject.getStartTime());
-                values.put(NetProphetData.END_TIME, infoObject.getEndTime());
-                values.put(NetProphetData.OVERALL_DELAY, infoObject.getOverallDelay());
-                values.put(NetProphetData.DNS_DELAY, infoObject.getDnsDelay());
-                values.put(NetProphetData.CONN_DELAY, infoObject.getConnDelay());
-                values.put(NetProphetData.HANDSHAKE_DELAY, infoObject.getHandshakeDelay());
-                values.put(NetProphetData.TLS_DELAY, infoObject.getTlsDelay());
-                values.put(NetProphetData.REQ_WRITE_DELAY, infoObject.getReqWriteDelay());
-                values.put(NetProphetData.SERVER_DELAY, infoObject.getServerDelay());
-                values.put(NetProphetData.TTFB_DELAY, infoObject.getTTFBDelay());
-                values.put(NetProphetData.RESP_TRANS_DELAY, infoObject.getRespTransDelay());
-
-                if (infoObject.isUseConnCache()) {
-                    values.put(NetProphetData.USE_CONN_CACHE, 1);
-                } else {
-                    values.put(NetProphetData.USE_CONN_CACHE, 0);
-                }
-                if (infoObject.isUseDNSCache()) {
-                    values.put(NetProphetData.USE_DNS_CACHE, 1);
-                } else {
-                    values.put(NetProphetData.USE_DNS_CACHE, 0);
-                }
-                if (infoObject.isUseRespCache()) {
-                    values.put(NetProphetData.USE_RESP_CACHE, 1);
-                } else {
-                    values.put(NetProphetData.USE_RESP_CACHE, 0);
-                }
-
-                values.put(NetProphetData.RESP_SIZE, infoObject.getRespSize());
-                values.put(NetProphetData.HTTP_CODE, infoObject.getHTTPCode());
-                values.put(NetProphetData.REQ_SIZE, infoObject.getReqSize());
-
-                if (infoObject.isFailedRequest()) {
-                    values.put(NetProphetData.IS_FAILED_REQUEST, 1);
-                } else {
-                    values.put(NetProphetData.IS_FAILED_REQUEST, 0);
-                }
-                values.put(NetProphetData.ERROR_MSG, infoObject.getErrorMsg());
-                values.put(NetProphetData.DETAILED_ERROR_MSG, infoObject.getDetailedErrorMsg());
-                values.put(NetProphetData.TRANS_ID, infoObject.getTransID());
-                values.put(NetProphetData.TRANS_TYPE, infoObject.getTransType());
-
-                db.insert(NetProphetData.TABLE_NAME, null, values);
-
-                db.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e("Database", "Failed to insert request info!");
-            } finally {
-                db.endTransaction();
-                db.close();
-            }
-        } finally {
-            db_lock.unlock();
-        }
-    }
-
-    public void addRequestInfos(List<NetProphetHTTPRequestInfoObject> objList)
-    {
-        db_lock.lock();
-        try {
-            SQLiteDatabase db = this.getWritableDatabase();
-            db.beginTransaction();
-            try {
-                Iterator<NetProphetHTTPRequestInfoObject> objIter = objList.iterator();
-                while(objIter.hasNext()) {
-                    NetProphetHTTPRequestInfoObject infoObject = objIter.next();
-                    ContentValues values = new ContentValues();
-                    checkRequestInfo(infoObject);
-
-                    values.put(NetProphetData.REQUEST_ID, infoObject.getReqID());
-                    values.put(NetProphetData.URL, infoObject.getUrl());
-                    values.put(NetProphetData.METHOD, infoObject.getMethod());
-                    values.put(NetProphetData.USER_ID, infoObject.getUserID());
-
-                    values.put(NetProphetData.PREV_REQ_ID, infoObject.getPrevReqID());
-                    values.put(NetProphetData.NEXT_REQ_ID, infoObject.getNextReqID());
-
-                    values.put(NetProphetData.START_TIME, infoObject.getStartTime());
-                    values.put(NetProphetData.END_TIME, infoObject.getEndTime());
-                    values.put(NetProphetData.OVERALL_DELAY, infoObject.getOverallDelay());
-                    values.put(NetProphetData.DNS_DELAY, infoObject.getDnsDelay());
-                    values.put(NetProphetData.CONN_DELAY, infoObject.getConnDelay());
-                    values.put(NetProphetData.HANDSHAKE_DELAY, infoObject.getHandshakeDelay());
-                    values.put(NetProphetData.TLS_DELAY, infoObject.getTlsDelay());
-                    values.put(NetProphetData.REQ_WRITE_DELAY, infoObject.getReqWriteDelay());
-                    values.put(NetProphetData.SERVER_DELAY, infoObject.getServerDelay());
-                    values.put(NetProphetData.TTFB_DELAY, infoObject.getTTFBDelay());
-                    values.put(NetProphetData.RESP_TRANS_DELAY, infoObject.getRespTransDelay());
-
-                    if (infoObject.isUseConnCache()) {
-                        values.put(NetProphetData.USE_CONN_CACHE, 1);
-                    } else {
-                        values.put(NetProphetData.USE_CONN_CACHE, 0);
-                    }
-                    if (infoObject.isUseDNSCache()) {
-                        values.put(NetProphetData.USE_DNS_CACHE, 1);
-                    } else {
-                        values.put(NetProphetData.USE_DNS_CACHE, 0);
-                    }
-                    if (infoObject.isUseRespCache()) {
-                        values.put(NetProphetData.USE_RESP_CACHE, 1);
-                    } else {
-                        values.put(NetProphetData.USE_RESP_CACHE, 0);
-                    }
-
-                    values.put(NetProphetData.RESP_SIZE, infoObject.getRespSize());
-                    values.put(NetProphetData.HTTP_CODE, infoObject.getHTTPCode());
-                    values.put(NetProphetData.REQ_SIZE, infoObject.getReqSize());
-
-                    if (infoObject.isFailedRequest()) {
-                        values.put(NetProphetData.IS_FAILED_REQUEST, 1);
-                    } else {
-                        values.put(NetProphetData.IS_FAILED_REQUEST, 0);
-                    }
-                    values.put(NetProphetData.ERROR_MSG, infoObject.getErrorMsg());
-                    values.put(NetProphetData.DETAILED_ERROR_MSG, infoObject.getDetailedErrorMsg());
-                    values.put(NetProphetData.TRANS_ID, infoObject.getTransID());
-                    values.put(NetProphetData.TRANS_TYPE, infoObject.getTransType());
-
-                    db.insert(NetProphetData.TABLE_NAME, null, values);
-                }
-
-                db.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e("Database", "Failed to insert request info!");
-            } finally {
-                db.endTransaction();
-                db.close();
-            }
-        } finally {
-            db_lock.unlock();
-        }
-    }
-
-    public void deleteRequestInfo(long req_id) {
-        db_lock.lock();
-        try {
-            SQLiteDatabase db = this.getWritableDatabase();
-            db.beginTransaction();
-            try {
-                db.delete(NetProphetData.TABLE_NAME, NetProphetData.REQUEST_ID + " = ?",
-                        new String[]{String.valueOf(req_id)});
-                db.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e("Database", "Failed to delete request info!");
-            } finally {
-                db.endTransaction();
-                db.close();
-            }
-        } finally {
-            db_lock.unlock();
-        }
-    }
-
-    public List<NetProphetHTTPRequestInfoObject> getAllRequestInfo() {
-        db_lock.lock();
-        List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
-        try {
-            String selectQuery = "SELECT * FROM " + NetProphetData.TABLE_NAME;
-            SQLiteDatabase db = this.getReadableDatabase();
-            db.beginTransaction();
-            try {
-                Cursor cursor = db.rawQuery(selectQuery, null);
-                db.setTransactionSuccessful();
-                if (cursor.moveToFirst()) {
-                    do {
-                        NetProphetHTTPRequestInfoObject infoObject = new NetProphetHTTPRequestInfoObject(
-                                cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
-                                cursor.getLong(4), cursor.getLong(5), cursor.getLong(6), cursor.getLong(7),
-                                cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
-                                cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
-                                cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
-                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
-                                cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
-
-                        requestList.add(infoObject);
-                    } while (cursor.moveToNext());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e("Database", "Failed to get all request info!");
-            } finally {
-                db.endTransaction();
-                db.close();
-            }
-        } finally {
-            db_lock.unlock();
-            return requestList;
-        }
-    }
-
-    public long getRequestInfoCount()
-    {
-        db_lock.lock();
-        long count = 0;
-        try{
-            SQLiteDatabase db = this.getReadableDatabase();
-            db.beginTransaction();
-            try{
-                String selectQuery = "SELECT count(*) FROM " + NetProphetData.TABLE_NAME;
-                Cursor cursor = db.rawQuery(selectQuery, null);
-                if(cursor.moveToFirst())
-                {
-                    count = cursor.getLong(0);
-                }
-            }catch (Exception e)
-            {
-                e.printStackTrace();
-                Log.e("Database","Failed to get request count!");
-            }finally {
-                db.endTransaction();
-                db.close();
-            }
-        }finally {
-            db_lock.unlock();
-            return count;
-        }
-    }
-
-    public List<NetProphetHTTPRequestInfoObject> getAllRequestInfoAndDelete()
-    {
-        db_lock.lock();
-        List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
-        try {
-            String selectQuery = "SELECT * FROM " + NetProphetData.TABLE_NAME;
-            SQLiteDatabase db = this.getWritableDatabase();
-            db.beginTransaction();
-            try {
-                Cursor cursor = db.rawQuery(selectQuery, null);
-                if (cursor.moveToFirst()) {
-                    do {
-                        db.delete(NetProphetData.TABLE_NAME, NetProphetData.REQUEST_ID + " = ?",
-                                new String[]{String.valueOf(cursor.getLong(0))});
-                        NetProphetHTTPRequestInfoObject infoObject = new NetProphetHTTPRequestInfoObject(
-                                cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
-                                cursor.getLong(4), cursor.getLong(5), cursor.getLong(6), cursor.getLong(7),
-                                cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
-                                cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
-                                cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
-                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
-                                cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
-
-                        requestList.add(infoObject);
-                    } while (cursor.moveToNext());
-                    db.setTransactionSuccessful();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e("Database", "Failed to get all request info and delete!");
-            } finally {
-                db.endTransaction();
-                db.close();
-            }
-        }finally {
-            db_lock.unlock();
-            return requestList;
-        }
-
-    }
-
-    private void checkRequestInfo(NetProphetHTTPRequestInfoObject infoObject)
-    {
-        if(infoObject.getUrl() == null)
-        {
-            infoObject.setUrl("");
-            Log.e("Database","URL IS NULL");
-        }
-        if(infoObject.getMethod() == null)
-        {
-            infoObject.setMethod("");
-            Log.e("Database","METHOD IS NULL");
-        }
-        if(infoObject.getUserID() == null)
-        {
-            infoObject.setUserID("");
-            Log.e("Database","USER_ID IS NULL");
-        }
-        if(infoObject.getErrorMsg() == null)
-        {
-            infoObject.setErrorMsg("");
-            Log.e("Database","ERROR_MSG IS NULL");
-        }
-        if(infoObject.getDetailedErrorMsg() == null)
-        {
-            infoObject.setDetailedErrorMsg("");
-            Log.e("Database","DETAILED_ERROR_MSG IS NULL");
-        }
-
 
     }
 
@@ -369,21 +60,335 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    public DatabaseSingleInsertTask getSingleInsertTask(NetProphetHTTPRequestInfoObject infoObject)
-    {
-        return new DatabaseSingleInsertTask(infoObject);
+    /*
+        NetProphetHTTPRequestInfo Database Interface
+     */
+
+    public void addRequestInfo(NetProphetHTTPRequestInfoObject infoObject) {
+        db_lock.lock();
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                ContentValues values = new ContentValues();
+                checkRequestInfo(infoObject);
+
+                values.put(NetProphetData.RequestColumns.REQUEST_ID, infoObject.getReqID());
+                values.put(NetProphetData.RequestColumns.URL, infoObject.getUrl());
+                values.put(NetProphetData.RequestColumns.METHOD, infoObject.getMethod());
+                values.put(NetProphetData.RequestColumns.USER_ID, infoObject.getUserID());
+
+                values.put(NetProphetData.RequestColumns.PREV_REQ_ID, infoObject.getPrevReqID());
+                values.put(NetProphetData.RequestColumns.NEXT_REQ_ID, infoObject.getNextReqID());
+
+                values.put(NetProphetData.RequestColumns.START_TIME, infoObject.getStartTime());
+                values.put(NetProphetData.RequestColumns.END_TIME, infoObject.getEndTime());
+                values.put(NetProphetData.RequestColumns.OVERALL_DELAY, infoObject.getOverallDelay());
+                values.put(NetProphetData.RequestColumns.DNS_DELAY, infoObject.getDnsDelay());
+                values.put(NetProphetData.RequestColumns.CONN_DELAY, infoObject.getConnDelay());
+                values.put(NetProphetData.RequestColumns.HANDSHAKE_DELAY, infoObject.getHandshakeDelay());
+                values.put(NetProphetData.RequestColumns.TLS_DELAY, infoObject.getTlsDelay());
+                values.put(NetProphetData.RequestColumns.REQ_WRITE_DELAY, infoObject.getReqWriteDelay());
+                values.put(NetProphetData.RequestColumns.SERVER_DELAY, infoObject.getServerDelay());
+                values.put(NetProphetData.RequestColumns.TTFB_DELAY, infoObject.getTTFBDelay());
+                values.put(NetProphetData.RequestColumns.RESP_TRANS_DELAY, infoObject.getRespTransDelay());
+
+                if (infoObject.isUseConnCache()) {
+                    values.put(NetProphetData.RequestColumns.USE_CONN_CACHE, 1);
+                } else {
+                    values.put(NetProphetData.RequestColumns.USE_CONN_CACHE, 0);
+                }
+                if (infoObject.isUseDNSCache()) {
+                    values.put(NetProphetData.RequestColumns.USE_DNS_CACHE, 1);
+                } else {
+                    values.put(NetProphetData.RequestColumns.USE_DNS_CACHE, 0);
+                }
+                if (infoObject.isUseRespCache()) {
+                    values.put(NetProphetData.RequestColumns.USE_RESP_CACHE, 1);
+                } else {
+                    values.put(NetProphetData.RequestColumns.USE_RESP_CACHE, 0);
+                }
+
+                values.put(NetProphetData.RequestColumns.RESP_SIZE, infoObject.getRespSize());
+                values.put(NetProphetData.RequestColumns.HTTP_CODE, infoObject.getHTTPCode());
+                values.put(NetProphetData.RequestColumns.REQ_SIZE, infoObject.getReqSize());
+
+                if (infoObject.isFailedRequest()) {
+                    values.put(NetProphetData.RequestColumns.IS_FAILED_REQUEST, 1);
+                } else {
+                    values.put(NetProphetData.RequestColumns.IS_FAILED_REQUEST, 0);
+                }
+                values.put(NetProphetData.RequestColumns.ERROR_MSG, infoObject.getErrorMsg());
+                values.put(NetProphetData.RequestColumns.DETAILED_ERROR_MSG, infoObject.getDetailedErrorMsg());
+                values.put(NetProphetData.RequestColumns.TRANS_ID, infoObject.getTransID());
+                values.put(NetProphetData.RequestColumns.TRANS_TYPE, infoObject.getTransType());
+
+                db.insert(NetProphetData.RequestColumns.TABLE_NAME, null, values);
+
+                db.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to save request info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+        }
     }
 
-    public DatabaseBatchInsertTask getBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
+
+
+    public void addRequestInfos(List<NetProphetHTTPRequestInfoObject> objList)
     {
-        return new DatabaseBatchInsertTask(objList);
+        db_lock.lock();
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                Iterator<NetProphetHTTPRequestInfoObject> objIter = objList.iterator();
+                while(objIter.hasNext()) {
+                    NetProphetHTTPRequestInfoObject infoObject = objIter.next();
+                    ContentValues values = new ContentValues();
+                    checkRequestInfo(infoObject);
+
+                    values.put(NetProphetData.RequestColumns.REQUEST_ID, infoObject.getReqID());
+                    values.put(NetProphetData.RequestColumns.URL, infoObject.getUrl());
+                    values.put(NetProphetData.RequestColumns.METHOD, infoObject.getMethod());
+                    values.put(NetProphetData.RequestColumns.USER_ID, infoObject.getUserID());
+
+                    values.put(NetProphetData.RequestColumns.PREV_REQ_ID, infoObject.getPrevReqID());
+                    values.put(NetProphetData.RequestColumns.NEXT_REQ_ID, infoObject.getNextReqID());
+
+                    values.put(NetProphetData.RequestColumns.START_TIME, infoObject.getStartTime());
+                    values.put(NetProphetData.RequestColumns.END_TIME, infoObject.getEndTime());
+                    values.put(NetProphetData.RequestColumns.OVERALL_DELAY, infoObject.getOverallDelay());
+                    values.put(NetProphetData.RequestColumns.DNS_DELAY, infoObject.getDnsDelay());
+                    values.put(NetProphetData.RequestColumns.CONN_DELAY, infoObject.getConnDelay());
+                    values.put(NetProphetData.RequestColumns.HANDSHAKE_DELAY, infoObject.getHandshakeDelay());
+                    values.put(NetProphetData.RequestColumns.TLS_DELAY, infoObject.getTlsDelay());
+                    values.put(NetProphetData.RequestColumns.REQ_WRITE_DELAY, infoObject.getReqWriteDelay());
+                    values.put(NetProphetData.RequestColumns.SERVER_DELAY, infoObject.getServerDelay());
+                    values.put(NetProphetData.RequestColumns.TTFB_DELAY, infoObject.getTTFBDelay());
+                    values.put(NetProphetData.RequestColumns.RESP_TRANS_DELAY, infoObject.getRespTransDelay());
+
+                    if (infoObject.isUseConnCache()) {
+                        values.put(NetProphetData.RequestColumns.USE_CONN_CACHE, 1);
+                    } else {
+                        values.put(NetProphetData.RequestColumns.USE_CONN_CACHE, 0);
+                    }
+                    if (infoObject.isUseDNSCache()) {
+                        values.put(NetProphetData.RequestColumns.USE_DNS_CACHE, 1);
+                    } else {
+                        values.put(NetProphetData.RequestColumns.USE_DNS_CACHE, 0);
+                    }
+                    if (infoObject.isUseRespCache()) {
+                        values.put(NetProphetData.RequestColumns.USE_RESP_CACHE, 1);
+                    } else {
+                        values.put(NetProphetData.RequestColumns.USE_RESP_CACHE, 0);
+                    }
+
+                    values.put(NetProphetData.RequestColumns.RESP_SIZE, infoObject.getRespSize());
+                    values.put(NetProphetData.RequestColumns.HTTP_CODE, infoObject.getHTTPCode());
+                    values.put(NetProphetData.RequestColumns.REQ_SIZE, infoObject.getReqSize());
+
+                    if (infoObject.isFailedRequest()) {
+                        values.put(NetProphetData.RequestColumns.IS_FAILED_REQUEST, 1);
+                    } else {
+                        values.put(NetProphetData.RequestColumns.IS_FAILED_REQUEST, 0);
+                    }
+                    values.put(NetProphetData.RequestColumns.ERROR_MSG, infoObject.getErrorMsg());
+                    values.put(NetProphetData.RequestColumns.DETAILED_ERROR_MSG, infoObject.getDetailedErrorMsg());
+                    values.put(NetProphetData.RequestColumns.TRANS_ID, infoObject.getTransID());
+                    values.put(NetProphetData.RequestColumns.TRANS_TYPE, infoObject.getTransType());
+
+                    db.insert(NetProphetData.RequestColumns.TABLE_NAME, null, values);
+                }
+
+                db.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to save request info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+        }
     }
 
-    private class DatabaseSingleInsertTask implements Runnable{
+
+    public void deleteRequestInfo(long req_id) {
+        db_lock.lock();
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                db.delete(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.REQUEST_ID + " = ?",
+                        new String[]{String.valueOf(req_id)});
+                db.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to delete request info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+        }
+    }
+
+    public List<NetProphetHTTPRequestInfoObject> getAllRequestInfo() {
+        db_lock.lock();
+        List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
+        try {
+            String selectQuery = "SELECT * FROM " + NetProphetData.RequestColumns.TABLE_NAME;
+            SQLiteDatabase db = this.getReadableDatabase();
+            db.beginTransaction();
+            try {
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                db.setTransactionSuccessful();
+                if (cursor.moveToFirst()) {
+                    do {
+                        NetProphetHTTPRequestInfoObject infoObject = new NetProphetHTTPRequestInfoObject(
+                                cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
+                                cursor.getLong(4), cursor.getLong(5), cursor.getLong(6), cursor.getLong(7),
+                                cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
+                                cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
+                                cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
+                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
+                                cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
+
+                        requestList.add(infoObject);
+                    } while (cursor.moveToNext());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to get request info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+            return requestList;
+        }
+    }
+
+    public long getRequestInfoCount()
+    {
+        db_lock.lock();
+        long count = 0;
+        try{
+            SQLiteDatabase db = this.getReadableDatabase();
+            db.beginTransaction();
+            try{
+                String selectQuery = "SELECT count(*) FROM " + NetProphetData.RequestColumns.TABLE_NAME;
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                if(cursor.moveToFirst())
+                {
+                    count = cursor.getLong(0);
+                }
+            }catch (Exception e)
+            {
+                e.printStackTrace();
+                System.err.println("Failed to get request count!");
+            }finally {
+                db.endTransaction();
+                db.close();
+            }
+        }finally {
+            db_lock.unlock();
+            return count;
+        }
+    }
+
+    public List<NetProphetHTTPRequestInfoObject> getAllRequestInfoAndDelete()
+    {
+        db_lock.lock();
+        List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
+        try {
+            String selectQuery = "SELECT * FROM " + NetProphetData.RequestColumns.TABLE_NAME;
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                if (cursor.moveToFirst()) {
+                    do {
+                        db.delete(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.REQUEST_ID + " = ?",
+                                new String[]{String.valueOf(cursor.getLong(0))});
+                        NetProphetHTTPRequestInfoObject infoObject = new NetProphetHTTPRequestInfoObject(
+                                cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
+                                cursor.getLong(4), cursor.getLong(5), cursor.getLong(6), cursor.getLong(7),
+                                cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
+                                cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
+                                cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
+                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
+                                cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
+
+                        requestList.add(infoObject);
+                    } while (cursor.moveToNext());
+                    db.setTransactionSuccessful();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to get request info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        }finally {
+            db_lock.unlock();
+            return requestList;
+        }
+
+    }
+
+    private void checkRequestInfo(NetProphetHTTPRequestInfoObject infoObject)
+    {
+        if(infoObject.getUrl() == null)
+        {
+            infoObject.setUrl("");
+        }
+        if(infoObject.getMethod() == null)
+        {
+            infoObject.setMethod("");
+        }
+        if(infoObject.getUserID() == null)
+        {
+            infoObject.setUserID("");
+        }
+        if(infoObject.getErrorMsg() == null)
+        {
+            infoObject.setErrorMsg("");
+        }
+        if(infoObject.getDetailedErrorMsg() == null)
+        {
+            infoObject.setDetailedErrorMsg("");
+        }
+
+
+    }
+
+
+    public RequestSingleInsertTask getRequestSingleInsertTask(NetProphetHTTPRequestInfoObject infoObject)
+    {
+        return new RequestSingleInsertTask(infoObject);
+    }
+
+    public RequestBatchInsertTask getRequestBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
+    {
+        return new RequestBatchInsertTask(objList);
+    }
+
+    public class RequestSingleInsertTask implements Runnable{
 
         private NetProphetHTTPRequestInfoObject infoObject;
 
-        public DatabaseSingleInsertTask(NetProphetHTTPRequestInfoObject obj)
+        public RequestSingleInsertTask(NetProphetHTTPRequestInfoObject obj)
         {
             this.infoObject = obj;
         }
@@ -394,11 +399,11 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    private class DatabaseBatchInsertTask implements Runnable{
+    public class RequestBatchInsertTask implements Runnable{
 
         private List<NetProphetHTTPRequestInfoObject> objectList;
 
-        public DatabaseBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
+        public RequestBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
         {
             this.objectList = objList;
         }
@@ -406,6 +411,241 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         @Override
         public void run() {
             addRequestInfos(objectList);
+        }
+    }
+
+
+    /*
+       NetProphetNetworkData Database Interface
+    */
+
+    public void addNetInfo(NetProphetNetworkData infoObject)
+    {
+        db_lock.lock();
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                ContentValues values = new ContentValues();
+
+                values.put(NetProphetData.NetInfoColumns.REQUEST_ID, infoObject.getReqID());
+                values.put(NetProphetData.NetInfoColumns.NET_TYPE,infoObject.getNetworkType());
+                values.put(NetProphetData.NetInfoColumns.NET_NAME,infoObject.getNetworkName());
+                values.put(NetProphetData.NetInfoColumns.WIFI_LEVEL,infoObject.getWIFISignalLevel());
+                values.put(NetProphetData.NetInfoColumns.CELL_LEVEL,infoObject.getCellSignalLevel());
+                values.put(NetProphetData.NetInfoColumns.MCC,infoObject.getMCC());
+                values.put(NetProphetData.NetInfoColumns.MNC,infoObject.getMNC());
+                values.put(NetProphetData.NetInfoColumns.LAC,infoObject.getLAC());
+                values.put(NetProphetData.NetInfoColumns.FIRST_MILE_LATENCY,infoObject.getFirstMileLatency());
+                values.put(NetProphetData.NetInfoColumns.FIRST_MILE_PACKET_LOSS,infoObject.getFirstMilePacketLossRate());
+
+
+                db.insert(NetProphetData.NetInfoColumns.TABLE_NAME, null, values);
+
+                db.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to save network info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+        }
+    }
+
+    public void addNetInfos(List<NetProphetNetworkData> objList)
+    {
+        db_lock.lock();
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                Iterator<NetProphetNetworkData> objIter = objList.iterator();
+                while(objIter.hasNext()) {
+                    NetProphetNetworkData infoObject = objIter.next();
+                    ContentValues values = new ContentValues();
+
+                    values.put(NetProphetData.NetInfoColumns.REQUEST_ID, infoObject.getReqID());
+                    values.put(NetProphetData.NetInfoColumns.NET_TYPE,infoObject.getNetworkType());
+                    values.put(NetProphetData.NetInfoColumns.NET_NAME,infoObject.getNetworkName());
+                    values.put(NetProphetData.NetInfoColumns.WIFI_LEVEL,infoObject.getWIFISignalLevel());
+                    values.put(NetProphetData.NetInfoColumns.CELL_LEVEL,infoObject.getCellSignalLevel());
+                    values.put(NetProphetData.NetInfoColumns.MCC,infoObject.getMCC());
+                    values.put(NetProphetData.NetInfoColumns.MNC,infoObject.getMNC());
+                    values.put(NetProphetData.NetInfoColumns.LAC,infoObject.getLAC());
+                    values.put(NetProphetData.NetInfoColumns.FIRST_MILE_LATENCY,infoObject.getFirstMileLatency());
+                    values.put(NetProphetData.NetInfoColumns.FIRST_MILE_PACKET_LOSS,infoObject.getFirstMilePacketLossRate());
+
+
+                    db.insert(NetProphetData.NetInfoColumns.TABLE_NAME, null, values);
+                }
+
+                db.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to save network info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+        }
+    }
+
+    public void deleteNetInfo(long req_id) {
+        db_lock.lock();
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                db.delete(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.REQUEST_ID + " = ?",
+                        new String[]{String.valueOf(req_id)});
+                db.setTransactionSuccessful();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to delete network info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+        }
+    }
+
+    public List<NetProphetNetworkData> getAllNetInfo() {
+        db_lock.lock();
+        List<NetProphetNetworkData> requestList = new ArrayList<NetProphetNetworkData>();
+        try {
+            String selectQuery = "SELECT * FROM " + NetProphetData.NetInfoColumns.TABLE_NAME;
+            SQLiteDatabase db = this.getReadableDatabase();
+            db.beginTransaction();
+            try {
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                db.setTransactionSuccessful();
+                if (cursor.moveToFirst()) {
+                    do {
+                        NetProphetNetworkData infoObject = new NetProphetNetworkData(cursor.getLong(0),
+                                cursor.getString(1),cursor.getString(2),cursor.getInt(3),cursor.getInt(4),
+                                cursor.getInt(5),cursor.getInt(6),cursor.getInt(7),cursor.getInt(8),cursor.getInt(9));
+
+                        requestList.add(infoObject);
+                    } while (cursor.moveToNext());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to get network info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+            return requestList;
+        }
+    }
+
+    public long getNetInfoCount()
+    {
+        db_lock.lock();
+        long count = 0;
+        try{
+            SQLiteDatabase db = this.getReadableDatabase();
+            db.beginTransaction();
+            try{
+                String selectQuery = "SELECT count(*) FROM " + NetProphetData.NetInfoColumns.TABLE_NAME;
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                if(cursor.moveToFirst())
+                {
+                    count = cursor.getLong(0);
+                }
+            }catch (Exception e)
+            {
+                e.printStackTrace();
+                System.err.println("Failed to get network count!");
+            }finally {
+                db.endTransaction();
+                db.close();
+            }
+        }finally {
+            db_lock.unlock();
+            return count;
+        }
+    }
+
+    public List<NetProphetNetworkData> getAllNetInfoAndDelete() {
+        db_lock.lock();
+        List<NetProphetNetworkData> requestList = new ArrayList<NetProphetNetworkData>();
+        try {
+            String selectQuery = "SELECT * FROM " + NetProphetData.NetInfoColumns.TABLE_NAME;
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                if (cursor.moveToFirst()) {
+                    do {
+                        db.delete(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.REQUEST_ID + " = ?",
+                                new String[]{String.valueOf(cursor.getLong(0))});
+                        NetProphetNetworkData infoObject = new NetProphetNetworkData(cursor.getLong(0),
+                                cursor.getString(1), cursor.getString(2), cursor.getInt(3), cursor.getInt(4),
+                                cursor.getInt(5), cursor.getInt(6), cursor.getInt(7), cursor.getInt(8), cursor.getInt(9));
+                        requestList.add(infoObject);
+                    } while (cursor.moveToNext());
+                    db.setTransactionSuccessful();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to get network info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+            return requestList;
+        }
+    }
+
+    public NetInfoSingleInsertTask getNetSingleInsertTask(NetProphetNetworkData infoObject)
+    {
+        return new NetInfoSingleInsertTask(infoObject);
+    }
+
+    public NetInfoBatchInsertTask getNetBatchInsertTask(List<NetProphetNetworkData> objList)
+    {
+        return new NetInfoBatchInsertTask(objList);
+    }
+
+    public class NetInfoSingleInsertTask implements Runnable{
+
+        private NetProphetNetworkData infoObject;
+
+        public NetInfoSingleInsertTask(NetProphetNetworkData obj)
+        {
+            this.infoObject = obj;
+        }
+
+        @Override
+        public void run() {
+            addNetInfo(infoObject);
+        }
+    }
+
+    public class NetInfoBatchInsertTask implements Runnable{
+
+        private List<NetProphetNetworkData> objectList;
+
+        public NetInfoBatchInsertTask(List<NetProphetNetworkData> objList)
+        {
+            this.objectList = objList;
+        }
+
+        @Override
+        public void run() {
+            addNetInfos(objectList);
         }
     }
 }

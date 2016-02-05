@@ -187,7 +187,7 @@ final class RealCall implements Call {
 		//TODO: this NetProphetNetworkObj is a bogus one;
 		/* long reqID, String type, String name, int wifiSignal, int cellSignal, 
 		 * int mcc, int mnc, int lac, int firstMileLat, int firstMilePLR */
-		NetProphetNetworkData networkData = new NetProphetNetworkData((long)0, "","", 0, 0, 0, 0, 0, 0, 0);
+		NetProphetNetworkData networkData = new NetProphetNetworkData(objList.get(0).getReqID(), "","", 0, 0, 0, 0, 0, 0, 0);
 		
 		if(storeToRemoteServer && !isCallStatInfoSavedRemotely){
 			logger.log(Level.INFO, "DEBUG: prepare store to remote Server ");
@@ -204,9 +204,10 @@ final class RealCall implements Call {
 		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
 			DatabaseHandler dbHandler = new DatabaseHandler(context);
-			asyncTaskManager.postTask(dbHandler.getBatchInsertTask(objList));
+			asyncTaskManager.postTask(dbHandler.getRequestBatchInsertTask(objList));
 			isCallStatInfoSavedLocally = true;
 			//TODO: store NetProphetNetworkData data into database.	
+			asyncTaskManager.postTask(dbHandler.getNetSingleInsertTask(networkData));
 		}
 	}
 
