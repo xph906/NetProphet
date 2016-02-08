@@ -203,11 +203,17 @@ final class RealCall implements Call {
 		
 		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
+			try{
 			DatabaseHandler dbHandler = new DatabaseHandler(context);
 			asyncTaskManager.postTask(dbHandler.getRequestBatchInsertTask(objList));
 			isCallStatInfoSavedLocally = true;
 			//TODO: store NetProphetNetworkData data into database.	
 			asyncTaskManager.postTask(dbHandler.getNetSingleInsertTask(networkData));
+			}
+			catch(Exception e){
+				logger.severe("error in storing to db: "+e.toString());
+				e.printStackTrace();
+			}
 		}
 	}
 

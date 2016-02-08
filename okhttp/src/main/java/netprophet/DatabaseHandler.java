@@ -28,6 +28,24 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        try{
+	        if(!isTableExists(NetProphetData.RequestColumns.TABLE_NAME)){
+	        	System.err.println(NetProphetData.RequestColumns.TABLE_NAME + " table not exists");
+	        	SQLiteDatabase db = this.getWritableDatabase();
+	        	db.execSQL(createTable(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.COLUMNS));
+	        	db.close();
+	        }
+	        if(!isTableExists(NetProphetData.NetInfoColumns.TABLE_NAME)){
+	        	System.err.println(NetProphetData.NetInfoColumns.TABLE_NAME + " table not exists");
+	        	SQLiteDatabase db = this.getWritableDatabase();
+	        	db.execSQL(createTable(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.COLUMNS));
+	        	db.close();
+	        }
+	    }
+        catch(Exception e){
+        	System.err.println("DATABASE ERROR:"+e);
+        	e.printStackTrace();
+        }
     }
 
     @Override
@@ -40,6 +58,31 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
+    }
+    
+    private boolean isTableExists(String tbName){
+    	boolean tableExists = false;
+    	try{
+    		SQLiteDatabase mDatabase = this.getReadableDatabase();
+        	Cursor c = null;
+        	/* get cursor on it */
+        	try
+        	{
+        	    c = mDatabase.query(tbName, null,
+        	        null, null, null, null, null);
+        	    tableExists = true;
+        	}
+        	catch (Exception e) {
+        	    /* fail */
+        	   System.err.println( tbName+" doesn't exist :"+e);
+        	}
+    	}
+    	catch(Exception e){
+    		System.err.println("DATABASE: "+e);
+    	}
+    	
+
+    	return tableExists;
     }
 
     private String createTable(String tableName, String[][] columns) {

@@ -284,17 +284,18 @@ public class DebugMain {
 		
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
-		String url = "https://api.github.com/repos/square/okhttp/contributors";
+		//String url = "https://api.github.com/repos/square/okhttp/contributors";
+		String url = "https://kat.cr/";
 		DebugMain.getStringRequest(url);
 		
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
 		logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
 		
-		DebugMain.getStringRequest("http://www.sina.com.cn/");
-		DebugMain.getStringRequest("http://www.douban.com");
-		DebugMain.getStringRequest("http://www.cnn.com");
-		DebugMain.getStringRequest("https://www.facebook.com");
-		DebugMain.getStringRequest("https://www.baidu.com");
+		//DebugMain.getStringRequest("http://www.sina.com.cn/");
+		//DebugMain.getStringRequest("http://www.douban.com");
+		//DebugMain.getStringRequest("http://www.cnn.com");
+		//DebugMain.getStringRequest("https://www.facebook.com");
+		//DebugMain.getStringRequest("https://www.baidu.com");
 		/*
 		// Testing error handling
 		DebugMain.getStringRequest("http://www.snwx.com/book/5/5450/1661585.html");
