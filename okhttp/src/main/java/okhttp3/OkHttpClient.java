@@ -30,6 +30,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import netprophet.NetUtility;
 import android.content.Context;
 import okhttp3.internal.Internal;
 import okhttp3.internal.InternalCache;
@@ -148,11 +149,17 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
 
   /* NetProphet */
   Context context;
-  /* End NetProphet*/
+  static NetUtility netUtility;
+  //TODO: deal with the context object, so developer doesn't need to specify context.
+  public static void initializeNetProphet(Context context){
+	  NetUtility.getInstance(context, null);
+  }
+  
   public OkHttpClient(Context context) {
     this(new Builder());
     this.context = context;
   }
+  /* End NetProphet*/
   public OkHttpClient() {
     this(new Builder());
   }

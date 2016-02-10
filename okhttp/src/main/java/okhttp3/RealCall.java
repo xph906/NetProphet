@@ -37,7 +37,9 @@ import netprophet.NetProphetHTTPRequestInfoObject;
 import netprophet.NetProphetIdentifierGenerator;
 import netprophet.NetProphetNetworkData;
 import netprophet.NetProphetPropertyManager;
+import netprophet.NetUtility;
 import netprophet.PostCallInfoTask;
+import netprophet.NetUtility.State;
 import okhttp3.Request.RequestTimingANP;
 import okhttp3.Request.ResponseInfoANP;
 import okhttp3.internal.NamedRunnable;
@@ -77,6 +79,19 @@ final class RealCall implements Call {
 	private boolean isCallStatInfoSavedLocally;
 	private boolean isCallStatInfoSavedRemotely;
 	private Context context;
+	
+	private NetUtility netUtilityANP;
+	private State netStateANP;
+    private String netTypeANP;
+    private String netNameANP;
+    private int WIFISigLevelANP;
+    private int CellSigLevelANP;
+    private int MCCANP;   // mobile network code
+    private int MNCANP;   // mobile country code
+    private int LACANP;   // local area code
+    
+    private boolean isRunningOnPhone;
+
 	@NetProphet
 	public CallStatInfo getCallStatInfo() {
 		CallStatInfo info = new CallStatInfo(urlsANP, timingsANP, startTimeANP,
@@ -102,9 +117,9 @@ final class RealCall implements Call {
 		Gson gson = new GsonBuilder().create();
 		
 		//String myAndroidDeviceId = mTelephony.getDeviceId(); 
-		String platformType = System.getProperty("java.vm.name");
+		//String platformType = System.getProperty("java.vm.name");
 		String userID = "non-android-user";
-		if(context!=null && platformType=="Dalvik"){
+		if(context!=null && isRunningOnPhone){
 			try{
 				TelephonyManager mTelephony = 
 						(TelephonyManager) (context.getSystemService(Context.TELEPHONY_SERVICE)); 
@@ -187,8 +202,11 @@ final class RealCall implements Call {
 		//TODO: this NetProphetNetworkObj is a bogus one;
 		/* long reqID, String type, String name, int wifiSignal, int cellSignal, 
 		 * int mcc, int mnc, int lac, int firstMileLat, int firstMilePLR */
-		NetProphetNetworkData networkData = new NetProphetNetworkData(objList.get(0).getReqID(), "","", 0, 0, 0, 0, 0, 0, 0);
-		
+		NetProphetNetworkData networkData = 
+				new NetProphetNetworkData(objList.get(0).getReqID(), netTypeANP, netNameANP,
+						WIFISigLevelANP, CellSigLevelANP, MCCANP, MNCANP, LACANP, 
+						0, 0);
+
 		if(storeToRemoteServer && !isCallStatInfoSavedRemotely){
 			logger.log(Level.INFO, "DEBUG: prepare store to remote Server ");
 			Iterator<NetProphetHTTPRequestInfoObject> objIter =
@@ -198,17 +216,20 @@ final class RealCall implements Call {
 				asyncTaskManager.postTask(
 						new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
 			}
+			//TODO: send networkData to remote server
+			
 			isCallStatInfoSavedRemotely = true;
 		}
 		
 		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
 			try{
-			DatabaseHandler dbHandler = new DatabaseHandler(context);
-			asyncTaskManager.postTask(dbHandler.getRequestBatchInsertTask(objList));
-			isCallStatInfoSavedLocally = true;
-			//TODO: store NetProphetNetworkData data into database.	
-			asyncTaskManager.postTask(dbHandler.getNetSingleInsertTask(networkData));
+				DatabaseHandler dbHandler = new DatabaseHandler(context);
+				asyncTaskManager.postTask(dbHandler.getRequestBatchInsertTask(objList));
+				isCallStatInfoSavedLocally = true;
+				//TODO: store NetProphetNetworkData data into database.	
+				asyncTaskManager.postTask(dbHandler.getNetSingleInsertTask(networkData));
+				logger.info("debug networkDATA: "+networkData.toString());
 			}
 			catch(Exception e){
 				logger.severe("error in storing to db: "+e.toString());
@@ -238,6 +259,19 @@ final class RealCall implements Call {
 		originalRequest.setCall(this);
 		propertyManager = NetProphetPropertyManager.getInstance();
 		context = client.getContext();
+		
+		netUtilityANP = null;
+		netStateANP = State.CONNECTED;
+	    netTypeANP = "";
+	    netNameANP = "";
+	    WIFISigLevelANP = 0;
+	    CellSigLevelANP = 0;
+	    MCCANP = 0;   // mobile network code
+	    MNCANP = 0;   // mobile country code
+	    LACANP = 0;
+	    
+	    String platformType = System.getProperty("java.vm.name");
+	    isRunningOnPhone = platformType.equals("Dalvik");
 		/* End NetProphet Initialization */
 	}
 
@@ -431,6 +465,20 @@ final class RealCall implements Call {
 				originalRequest, forWebSocket);
 		/* NetProphet */
 		startTimeANP = System.currentTimeMillis();
+		
+		if(isRunningOnPhone){
+			if(netUtilityANP == null){
+				netUtilityANP = NetUtility.getInstance(context, null);
+			}
+			netStateANP = netUtilityANP.getNetworkingState();
+			netTypeANP = netUtilityANP.getNetworkingType();
+			netNameANP = netUtilityANP.getNetworkingName();
+			WIFISigLevelANP = netUtilityANP.getWIFISignalStrength();
+			CellSigLevelANP = netUtilityANP.getCellSignalStrength();
+			MCCANP = netUtilityANP.getMCC();
+			MNCANP = netUtilityANP.getMNC();
+			LACANP = netUtilityANP.getLAC();
+		}
 		/* End NetProphet */
 		Response rs = chain.proceed(originalRequest);
 		/* NetProphet */

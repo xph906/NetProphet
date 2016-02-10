@@ -28,6 +28,14 @@ public class NetProphetNetworkData {
 		this.firstMilePacketLossRate = firstMilePLR;
 	}
 	
+	public String toString(){
+		return String.format("REQ_ID:%d\n TYPE:%s NAME:%s\n" + 
+				"WIFISIG:%d CELLSIG:%d\n"+
+				"MCC:%d MNC:%d\n"+
+				"LAC:%d", (long)reqID, networkType, networkName,  WIFISignalLevel,
+				cellSignalLevel, MCC, MNC, LAC);
+	}
+	
 	public String getNetworkType() {
 		return networkType;
 	}
