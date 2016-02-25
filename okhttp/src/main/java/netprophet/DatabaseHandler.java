@@ -53,6 +53,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL(createTable(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.COLUMNS));
         db.execSQL(createTable(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.COLUMNS));
         //db.execSQL("CREATE INDEX request_id_index on " + NetProphetData.TABLE_NAME + "(" + NetProphetData.REQUEST_ID + ")");
+        //System.err.println("Table Exists: "+isTableExists(NetProphetData.RequestColumns.TABLE_NAME));
     }
 
     @Override

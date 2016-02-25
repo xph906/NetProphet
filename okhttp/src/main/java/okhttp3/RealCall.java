@@ -602,6 +602,8 @@ final class RealCall implements Call {
 						.setSuccessfulANP(false);
 				engine.getRequest().getRequestTimingANP()
 						.setErrorString(e.toString());
+				engine.getRequest().getRequestTimingANP()
+					.setRespEndTimeANP(System.currentTimeMillis());
 				isFailedCallANP = true;
 				detailedErrorMsg = e.toString();
 				storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
@@ -631,6 +633,8 @@ final class RealCall implements Call {
 						.setErrorString(e.toString());
 				isFailedCallANP = true;
 				detailedErrorMsg = e.toString();
+				engine.getRequest().getRequestTimingANP()
+					.setRespEndTimeANP(System.currentTimeMillis());
 				storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
 				/* End NetProphet */
 				// Give up; recovery is not possible.
@@ -660,6 +664,8 @@ final class RealCall implements Call {
 				isFailedCallANP = true;
 				detailedErrorMsg = e.toString();
 				storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
+				engine.getRequest().getRequestTimingANP()
+					.setRespEndTimeANP(System.currentTimeMillis());
 				/* End NetProphet */
 				// Give up; recovery is not possible.
 				throw e;

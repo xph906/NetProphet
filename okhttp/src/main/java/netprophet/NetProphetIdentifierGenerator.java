@@ -14,12 +14,12 @@ public class NetProphetIdentifierGenerator {
 	  this.id = seed+1;
 	};
 	
-	public long getNextHTTPRequestID(){
+	public synchronized long getNextHTTPRequestID(){
 		return this.id++;
 	}
 	
 	//TODO: maybe we should differentiate request ID and trasanction ID?
-	public long getNextTransactionID(){
+	public synchronized long getNextTransactionID(){
 		return this.id++;
 	}
 	

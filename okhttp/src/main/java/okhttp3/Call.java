@@ -127,8 +127,7 @@ public interface Call {
 				else if(lastTiming.getReqWriteStartTimeANP()!=0 &&
 						lastTiming.getReqWriteEndTimeANP()==0)
 					return ErrorMsg.REQ_SENT_ERR;
-				else if(lastTiming.getRespStartTimeANP()!=0 &&
-						lastTiming.getRespEndTimeANP()==0)
+				else if(lastTiming.getRespStartTimeANP()!=0 )
 					return ErrorMsg.RESP_RECV_ERR;
 				else if(lastTiming.getRespStartTimeANP()==0)
 					return ErrorMsg.HTTP_SERVER_TIMEOUT_ERR;
