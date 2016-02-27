@@ -20,8 +20,10 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Vector;
 import java.util.logging.Level;
 
 import android.telephony.TelephonyManager;
@@ -128,8 +130,7 @@ final class RealCall implements Call {
 			catch(Exception e){
 				logger.log(Level.SEVERE,  "error in getting device id: "+e.toString());
 				userID = "error-device-id";
-			}
-			
+			}		
 		}
 		
 		//logger.log(Level.INFO, "DEBUG userID: "+userID+" "+platformType+" "+context);
@@ -211,11 +212,19 @@ final class RealCall implements Call {
 			logger.log(Level.INFO, "DEBUG: prepare store to remote Server ");
 			Iterator<NetProphetHTTPRequestInfoObject> objIter =
 					objList.iterator();
+			Vector arr = new Vector();
 			while(objIter.hasNext()){
-				String objStr = gson.toJson(objIter.next());
-				asyncTaskManager.postTask(
-						new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
+				//String objStr = gson.toJson(objIter.next());
+				arr.add(objIter.next());
+				//asyncTaskManager.postTask(
+				//		new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
 			}
+			arr.add(networkData);
+			
+			String objStr = gson.toJson(arr);
+			//System.err.println(objStr);
+			asyncTaskManager.postTask(
+					new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
 			//TODO: send networkData to remote server
 			
 			isCallStatInfoSavedRemotely = true;

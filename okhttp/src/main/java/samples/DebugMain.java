@@ -291,10 +291,10 @@ public class DebugMain {
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
 		logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
 		
-		//DebugMain.getStringRequest("http://www.sina.com.cn/");
-		//DebugMain.getStringRequest("http://www.douban.com");
-		//DebugMain.getStringRequest("http://www.cnn.com");
-		//DebugMain.getStringRequest("https://www.facebook.com");
+		DebugMain.getStringRequest("http://www.sina.com.cn/");
+		DebugMain.getStringRequest("http://www.douban.com");
+		DebugMain.getStringRequest("http://www.cnn.com");
+		DebugMain.getStringRequest("https://www.facebook.com");
 		//DebugMain.getStringRequest("https://www.baidu.com");
 		/*
 		// Testing error handling
