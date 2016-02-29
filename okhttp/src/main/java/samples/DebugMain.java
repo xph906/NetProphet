@@ -2,8 +2,13 @@ package samples;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -250,6 +255,37 @@ public class DebugMain {
 		}
 	}
 
+	private static void printDNSCache(String cacheName) throws Exception {
+	    Class<InetAddress> klass = InetAddress.class;
+	    Field acf = klass.getDeclaredField(cacheName);
+	    acf.setAccessible(true);
+	    Object addressCache = acf.get(null);
+	    Class cacheKlass = addressCache.getClass();
+	    Field cf = cacheKlass.getDeclaredField("cache");
+	    cf.setAccessible(true);
+	    Map<String, Object> cache = (Map<String, Object>) cf.get(addressCache);
+	    for (Map.Entry<String, Object> hi : cache.entrySet()) {
+	        Object cacheEntry = hi.getValue();
+	        Class cacheEntryKlass = cacheEntry.getClass();
+	        Field expf = cacheEntryKlass.getDeclaredField("expiration");
+	        expf.setAccessible(true);
+	        long expires = (Long) expf.get(cacheEntry);
+	        Field fs[] = cacheEntryKlass.getDeclaredFields();
+	        //for (Field f : fs){
+	        //	System.err.println(f.getName());
+	        //}
+	        Field af = cacheEntryKlass.getDeclaredField("addresses");
+	        af.setAccessible(true);
+	        InetAddress[] addresses = (InetAddress[]) af.get(cacheEntry);
+	        List<String> ads = new ArrayList<String>(addresses.length);
+	        for (InetAddress address : addresses) {
+	            ads.add(address.getHostAddress());
+	        }
+
+	        System.out.println(hi.getKey() + " "+new Date(expires) +" " +ads);
+	    }
+	  }
+	
 	public static void main(String[] args) throws Exception {
 		String hostOregan = "garuda.cs.northwestern.edu";
 		String httpPort = "3000";
@@ -284,8 +320,8 @@ public class DebugMain {
 		
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
-		//String url = "https://api.github.com/repos/square/okhttp/contributors";
-		String url = "https://kat.cr/";
+		String url = "https://api.github.com/repos/square/okhttp/contributors";
+		//String url = "https://kat.cr/";
 		DebugMain.getStringRequest(url);
 		
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
@@ -295,6 +331,10 @@ public class DebugMain {
 		DebugMain.getStringRequest("http://www.douban.com");
 		DebugMain.getStringRequest("http://www.cnn.com");
 		DebugMain.getStringRequest("https://www.facebook.com");
+		 
+		String addressCache = "addressCache";
+		printDNSCache(addressCache);
+		 
 		//DebugMain.getStringRequest("https://www.baidu.com");
 		/*
 		// Testing error handling

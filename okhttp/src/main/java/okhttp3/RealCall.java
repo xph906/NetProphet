@@ -214,10 +214,7 @@ final class RealCall implements Call {
 					objList.iterator();
 			Vector arr = new Vector();
 			while(objIter.hasNext()){
-				//String objStr = gson.toJson(objIter.next());
 				arr.add(objIter.next());
-				//asyncTaskManager.postTask(
-				//		new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
 			}
 			arr.add(networkData);
 			
@@ -225,8 +222,6 @@ final class RealCall implements Call {
 			//System.err.println(objStr);
 			asyncTaskManager.postTask(
 					new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
-			//TODO: send networkData to remote server
-			
 			isCallStatInfoSavedRemotely = true;
 		}
 		
