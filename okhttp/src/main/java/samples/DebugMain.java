@@ -3,6 +3,7 @@ package samples;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,6 +29,16 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.BufferedSink;
 import static okhttp3.internal.Internal.logger;
+
+import org.xbill.DNS.ARecord;
+import org.xbill.DNS.Cache;
+import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Name;
+import org.xbill.DNS.RRset;
+import org.xbill.DNS.Record;
+import org.xbill.DNS.Resolver;
+import org.xbill.DNS.SimpleResolver;
+import org.xbill.DNS.Type;
 
 import com.google.gson.Gson;
 
@@ -327,14 +338,66 @@ public class DebugMain {
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
 		logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
 		
-		DebugMain.getStringRequest("http://www.sina.com.cn/");
-		DebugMain.getStringRequest("http://www.douban.com");
+		//DebugMain.getStringRequest("http://www.sina.com.cn/");
+		//DebugMain.getStringRequest("https://www.tmall.com");
 		DebugMain.getStringRequest("http://www.cnn.com");
 		DebugMain.getStringRequest("https://www.facebook.com");
-		 
+		//DebugMain.getStringRequest("http://51yes.com");
+		
 		String addressCache = "addressCache";
 		printDNSCache(addressCache);
+		 Cache cache = new Cache();
+		 Resolver resolver = new SimpleResolver();
+		 long t0 = System.currentTimeMillis();
+		 String hn = "www.google.com";
+		 Lookup lookup = new Lookup(hn, Type.A);
+		 lookup.setResolver(resolver);
+		 lookup.setCache(cache);
+		 long t1 = System.currentTimeMillis();
+		 Record[] records = lookup.run();
+		 String address = ((ARecord) records[0]).getAddress().toString();
+		 long t2 = System.currentTimeMillis();
+		 t0 = t2 - t0;
+		 t1 = t2 - t1;
+		 System.err.println("delay:"+t0+" "+t1);
+		 System.out.println(address);
+		 Name n = null;
+		 Cache secondCache = new Cache();
+		 for (Record record : records){
+			 //Record newRecord = new Record(record.getName(), record.getType(), record.getDClass(), 100000);
+			 Class recordClass = record.getClass().getSuperclass();
+			 Field cf = recordClass.getDeclaredField("ttl"); 
+			 cf.setAccessible(true);
+			 cf.set(record, 10000);
+			 System.out.println(((ARecord)record).getAddress().toString()+" TTL:"+((ARecord)record).getTTL() +" name:"+record.getName());
+			 ARecord newARecord = new ARecord(Name.fromString(hn+'.'), record.getDClass(), 5, ((ARecord)record).getAddress());
+			 secondCache.addRecord(newARecord, 5, null);
+			 
+		 }
 		 
+		 t0 = System.currentTimeMillis();
+		 lookup = new Lookup("www.cnn.com", Type.A);
+		 lookup.setResolver(resolver);
+		 lookup.setCache(cache);
+		 t1 = System.currentTimeMillis();
+		 records = lookup.run();
+		 address = ((ARecord) records[0]).getAddress().toString();
+		 t2 = System.currentTimeMillis() ;
+		 t0 = t2 - t0;
+		 t1 = t2 - t1;
+		 System.err.println("delay2:"+t0+" "+t1);
+		 DebugMain.getStringRequest("https://www.facebook.com");
+		 RRset[] rs = secondCache.findRecords(Name.fromString(hn+'.'), Type.A);
+		 for(RRset r : rs){
+			 System.err.println("display cache: "+r);
+		 }
+		 /*DebugMain.getStringRequest("http://www.douban.com");
+		 rs = secondCache.findRecords(Name.fromString(hn+'.'), Type.A);
+		 for(RRset r : rs){
+			 System.err.println("display cache: "+r);
+		 }*/
+		 
+		 //printDNSCache(addressCache);
 		//DebugMain.getStringRequest("https://www.baidu.com");
 		/*
 		// Testing error handling
