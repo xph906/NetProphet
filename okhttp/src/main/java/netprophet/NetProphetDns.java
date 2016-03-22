@@ -33,7 +33,7 @@ import org.xbill.DNS.Record;
 import org.xbill.DNS.Resolver;
 import org.xbill.DNS.SimpleResolver;
 import org.xbill.DNS.Type;
-
+import static okhttp3.internal.Internal.logger;
 /**
  * Created by xpan on 3/2/16.
  */
@@ -41,7 +41,9 @@ public class NetProphetDns implements Dns {
     final static private int maxSecondLevCacheEntry = 3000;
     final static private int SecondLevelCacheRecordCredibility = 5;
     final static private int hardDNSTimeout = 20; //20s
-    final static private int DefaultTimeout = 1;
+    final static private int DefaultTimeout = 10;
+    final static private int LongTimeoutItemThreshold = 3;
+    final static private int UpdateDNSTimeoutThreshold = 20;
     //put this in the configure file.
     final static private boolean EnableSecondLevelCache = true;
 
@@ -63,13 +65,13 @@ public class NetProphetDns implements Dns {
         List<InetAddress> cachedRecordList = new ArrayList<InetAddress>();
         StringBuilder errorMsg = new StringBuilder();
         if(searchSystemDNSCache(hostname,cachedRecordList, errorMsg)){
-            System.err.println(hostname+" found record in system cache!");
+        	logger.info("  found record in system cache: "+hostname);
             return cachedRecordList;
         }
         InetAddress cachedRecord = searchCache(defaultCache, hostname);
         if (cachedRecord != null){
             cachedRecordList.add(cachedRecord);
-            System.err.println(hostname+" found record in default cache!");
+            logger.info("  found record in default cache: "+hostname);
             //System.err.flush();
             return cachedRecordList;
         }
@@ -77,14 +79,13 @@ public class NetProphetDns implements Dns {
             cachedRecord = searchCache(secondLevelCache, hostname);
             if (cachedRecord != null){
                 cachedRecordList.add(cachedRecord);
-                System.err.println(hostname+" found record in second level cache!");
+                logger.info("  found record in second level cache: "+hostname);
                 executor.execute(new AsynLookupTask(hostname));
                 return cachedRecordList;
             }
         }
-        System.err.println("defaultCache Entry:"+defaultCache.getSize() +" secCacheEntry:"+secondLevelCache.getSize());
-        System.err.println("do synchronous lookup!  "+hostname+ " "+enableSecondLevelCache);
-        //System.err.flush();
+        //logger.info("defaultCache Entry:"+defaultCache.getSize() +" secCacheEntry:"+secondLevelCache.getSize());
+        logger.info("do synchronous lookup!  "+hostname);
         return synchronousLookup(hostname);
     }
 
@@ -121,7 +122,8 @@ public class NetProphetDns implements Dns {
     private long userDefinedTTL, userDefinedNegTTL;
     /* Default lookup server*/
     private int dnsDefaultTimeout;
-    LinkedList<TimeoutExceptionItem> longTimeoutItems;
+    LinkedList<TimeoutExceptionItem> longTimeoutItems;	//used to increase dnsDefaultTimeout.
+    LinkedList<TimeoutExceptionItem> dnsDelayItems; 	//used to decrease dnsDefaultTimeout.
     private String dnsServer;
     private Resolver resolver, resolverWithLongTimeout ;
     private Map<Name, Set<Name>> host2DNSName;
@@ -141,10 +143,11 @@ public class NetProphetDns implements Dns {
      * TODO: this function is not fully implemented.
      *   Called every time when either of following changed:
      *    1. longTimeoutItems.
+     *    2. dnsDelayItems.
      *    2. dnsDefaultTimeout.
      *  */
     private void adjustTimeout(){
-        if (longTimeoutItems.size() > 5) {
+        if (longTimeoutItems.size() > LongTimeoutItemThreshold) {
             long largestDelay = 0, smalledstDelay = hardDNSTimeout;
             for (TimeoutExceptionItem item : longTimeoutItems){
                 if(item.delay > largestDelay)
@@ -152,17 +155,47 @@ public class NetProphetDns implements Dns {
                 if(item.delay < smalledstDelay)
                     smalledstDelay = item.delay;
             }
-            double delay = (largestDelay - smalledstDelay)*0.8 + smalledstDelay;
-            int newDnsDefaultTimeout = (int)((delay+500)/1000);
+            //double delay = (largestDelay - smalledstDelay)*0.8 + smalledstDelay;
+            //int newDnsDefaultTimeout = (int)((delay+500)/1000);
+            int newDnsDefaultTimeout = (int)((largestDelay+500)/1000);      
             if (newDnsDefaultTimeout > hardDNSTimeout)
                 newDnsDefaultTimeout = hardDNSTimeout;
-            System.err.println("DNSTimeout has been updated from "+
+            logger.info("DNSTimeout has been updated[1] from "+
                     dnsDefaultTimeout+" to "+newDnsDefaultTimeout);
             resolver.setTimeout(newDnsDefaultTimeout);
+            dnsDefaultTimeout = newDnsDefaultTimeout;
             longTimeoutItems.clear();
         }
+        else{
+        	if (dnsDelayItems.size() > UpdateDNSTimeoutThreshold){
+        		long largestDelay = 0;
+        		for(TimeoutExceptionItem item : dnsDelayItems){
+        			if(item.delay > largestDelay)
+                        largestDelay = item.delay;
+        		}
+        		int newDnsDefaultTimeout = (int)((largestDelay+500)/1000) + 1;  
+        		if (newDnsDefaultTimeout > hardDNSTimeout)
+                    newDnsDefaultTimeout = hardDNSTimeout;
+        		if (newDnsDefaultTimeout < 2)
+        			newDnsDefaultTimeout = 2;
+        		logger.info("DNSTimeout has been updated[2] from "+
+                        dnsDefaultTimeout+" to "+newDnsDefaultTimeout);
+                resolver.setTimeout(newDnsDefaultTimeout);
+                dnsDefaultTimeout = newDnsDefaultTimeout;
+                dnsDelayItems.clear();
+        	}
+        }
     }
-
+    
+    /* TODO: this function is not fully implemented.
+     * Empty longTimeoutItems and dnsDelayItems
+     */
+    public void changeNetworkingState(){
+    	longTimeoutItems.clear();
+    	dnsDelayItems.clear();
+    	dnsDefaultTimeout = DefaultTimeout;
+    }
+    
     public void setEnableSecondLevelCache(boolean enableSecondLevelCache) {
         this.enableSecondLevelCache = enableSecondLevelCache;
     }
@@ -181,6 +214,7 @@ public class NetProphetDns implements Dns {
 
         enableSecondLevelCache = EnableSecondLevelCache;
         longTimeoutItems = new LinkedList<TimeoutExceptionItem>();
+        dnsDelayItems = new LinkedList<TimeoutExceptionItem>();
     }
 
     /*
@@ -221,6 +255,7 @@ public class NetProphetDns implements Dns {
             }
         }
         catch(Exception e){
+        	logger.severe("error in searchCache: "+e);
             e.printStackTrace();
         }
         return null;
@@ -259,13 +294,10 @@ public class NetProphetDns implements Dns {
                 af.setAccessible(true);
                 InetAddress[] addresses =null;
                 try {
-                    //System.err.println("start");
                     addresses = (InetAddress[]) af.get(cacheEntry);
-                    //System.err.println(addresses);
                 }
                 catch(java.lang.ClassCastException e){
                     errorMsg.append(((String)af.get(cacheEntry))+"error:"+e);
-                    //System.err.println(af.get(cacheEntry)+"error:"+e);
                     return true;
                 }
                 for (InetAddress address : addresses) {
@@ -291,7 +323,7 @@ public class NetProphetDns implements Dns {
             long dnsStartTimeout = System.currentTimeMillis();
             Record[] records = lookup.run();
             long dnsDelay = System.currentTimeMillis() - dnsStartTimeout;
-            System.out.println("done DNS lookup in "+dnsDelay +" ms");
+            logger.info("done DNS lookup "+hostname+" in "+dnsDelay +" ms");
 
             //Cannot find the hostname, returns directly.
             if (records == null){
@@ -302,7 +334,8 @@ public class NetProphetDns implements Dns {
                 }
                 return null;
             }
-
+            dnsDelayItems.add(new TimeoutExceptionItem(System.currentTimeMillis(), dnsDelay, hostname));
+            adjustTimeout();
             // Update the cache.
             ArrayList<InetAddress> rs = new ArrayList<InetAddress>(records.length);
             RRset rrset = new RRset();
@@ -328,18 +361,17 @@ public class NetProphetDns implements Dns {
                 ARecord newARecord =  new ARecord(rawHostName, record.getDClass(),
                                 userDefinedTTL, ((ARecord)record).getAddress());
                 rrset.addRR(newARecord);
-                System.out.println(
-                        String.format("Name:%s IP:%s TTL:%d\n",
-                            record.getName(),
-                            ((ARecord) record).getAddress().toString(),
-                            ((ARecord) record).getTTL())); 
+                /*logger.info(
+                 *       String.format("Name:%s IP:%s TTL:%d\n",
+                 *           record.getName(),
+                 *           ((ARecord) record).getAddress().toString(),
+                 *           ((ARecord) record).getTTL())); 
+                 */
             }
             storeRRsetToSecondLevCache(rawHostName, rrset);
-
             return rs;
         }
         catch(Exception e){
-            System.err.println("error in doLookUp: "+e);
             e.printStackTrace();
             return null;
         }
@@ -351,7 +383,7 @@ public class NetProphetDns implements Dns {
             return Name.fromString(host + '.');
         }
         catch(Exception e){
-            System.err.println("error in generateNameFromHost: "+e);
+            logger.severe("error in generateNameFromHost: "+e);
             e.printStackTrace();
             return null;
         }
@@ -395,7 +427,7 @@ public class NetProphetDns implements Dns {
             return sb.toString();
         }
         catch(Exception e){
-            System.err.println(e);
+        	logger.severe("logger in displaying cache "+e);
             e.printStackTrace();
             return "error:"+e.toString();
         }
@@ -426,7 +458,7 @@ public class NetProphetDns implements Dns {
             return resolver;
         }
         catch(Exception e){
-            System.err.println("failed to initiate Resolver:"+e);
+            logger.severe("failed to initiate Resolver:"+e);
             e.printStackTrace();
             return null;
         }
@@ -452,7 +484,7 @@ public class NetProphetDns implements Dns {
             this.hostname = hostname;
         }
     }
-    public class AsynLookupTask implements Runnable {
+    private class AsynLookupTask implements Runnable {
         private String hostname;
         private long delay;
 
@@ -472,14 +504,16 @@ public class NetProphetDns implements Dns {
                 Record[] records = lookup.run();
                 long dnsDelay = System.currentTimeMillis() - dnsStartTimeout;
                 boolean isSucc = !(records==null);
-                System.out.println("ASYN done DNS lookup in "+dnsDelay +" ms "+isSucc);
+                logger.info("  Asyncronous DNS lookup done in "+dnsDelay +" ms. Successful:"+isSucc);
                 if(records==null)
                     return ;
                 if (dnsDelay > dnsDefaultTimeout) {
                     longTimeoutItems.add(new TimeoutExceptionItem(
                             System.currentTimeMillis(), dnsDelay, hostname));
-                    adjustTimeout();
                 }
+                dnsDelayItems.add(new TimeoutExceptionItem(
+                		System.currentTimeMillis(), dnsDelay, hostname));
+                adjustTimeout();
 
                 // Update the cache.
                 ArrayList<InetAddress> rs = new ArrayList<InetAddress>(records.length);
@@ -501,21 +535,15 @@ public class NetProphetDns implements Dns {
                             host2DNSName.put(rawHostName, newSet);
                         }
                     }
-
                     // update secondLevelCache
                     ARecord newARecord =  new ARecord(rawHostName, record.getDClass(),
                             userDefinedTTL, ((ARecord)record).getAddress());
                     rrset.addRR(newARecord);
-                    System.out.println(
-                            String.format("Name:%s IP:%s TTL:%d\n",
-                                    record.getName(),
-                                    ((ARecord) record).getAddress().toString(),
-                                    ((ARecord) record).getTTL()));
                 }
                 storeRRsetToSecondLevCache(rawHostName, rrset);
             }
             catch(Exception e){
-                System.err.println("error in doLookUp asynchronously: "+e);
+                logger.severe("error in doLookUp asynchronously: "+e);
                 e.printStackTrace();
             }
         }
@@ -530,9 +558,8 @@ public class NetProphetDns implements Dns {
             cf.set(record, userDefinedTTL);
         }
         catch(Exception e){
-            System.err.println("error in ModifyARecordTTL");
+            logger.severe("error in ModifyARecordTTL");
             e.printStackTrace();
         }
     }
-
 }

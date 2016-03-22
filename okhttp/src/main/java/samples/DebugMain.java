@@ -68,8 +68,8 @@ public class DebugMain {
 		// Retrieve the response and display timing information
 		ResponseBody body = response.body();
 		String str = body.string();
-		displayTimingInfo(c);
-		logger.log(Level.INFO, "Done loading url: " + url+"\n");
+		//displayTimingInfo(c);
+		//logger.log(Level.INFO, "Done loading url: " + url+"\n");
 	}
 
 	public static void postJPGImage(String url, File file) throws Exception {
@@ -310,19 +310,32 @@ public class DebugMain {
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
-		//String url = "https://kat.cr/";
 		DebugMain.getStringRequest(url);
 		
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
-		//logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
+		logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
 		
 		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml");
-		DebugMain.getStringRequest("https://www.tmall.com");
-		
+		DebugMain.getStringRequest("https://www.tmall.com");		
 		DebugMain.getStringRequest("http://www.cnn.com");
 		DebugMain.getStringRequest("https://www.facebook.com");
 		DebugMain.getStringRequest("http://51yes.com");
-		
+		DebugMain.getStringRequest("http://appslollipop.com/down_Apps_United-Airlines_Lollipop.html?step=3");
+		DebugMain.getStringRequest("https://www.soic.indiana.edu/all-people/profile.html?profile_id=317");
+		DebugMain.getStringRequest("http://www.sina.com.cn/");
+		DebugMain.getStringRequest("http://www.douban.com");
+		DebugMain.getStringRequest("https://www.baidu.com"); 
+		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/sleep-2000");
+		DebugMain.getStringRequest("https://mail.google.com/mail/u/0/#inbox");
+		DebugMain.getStringRequest("https://play.google.com/store/apps/details?id=com.united.mobile.android&hl=en");
+		DebugMain.getStringRequest("https://appraw.com/apk/united-airlines-apk-download-766jn");
+		DebugMain.getStringRequest("http://www.dnsjava.org/doc/org/xbill/DNS/Lookup.html");
+		DebugMain.getStringRequest("http://mvnrepository.com/artifact/dnsjava/dnsjava/2.1.1"); 
+		DebugMain.getStringRequest("http://www.dnsjava.org/");
+		DebugMain.getStringRequest("http://www.hupu.com/");
+		DebugMain.getStringRequest("https://www.owasp.org/index.php/Testing_for_CSS_Injection_(OTG-CLIENT-005)");
+		DebugMain.getStringRequest("https://en.wikipedia.org/wiki/Content_Security_Policy");
+		DebugMain.getStringRequest("https://nvisium.com/blog/2016/03/09/exploring-ssti-in-flask-jinja2/");
 		/*
 		String addressCache = "addressCache";
 		printDNSCache(addressCache);
