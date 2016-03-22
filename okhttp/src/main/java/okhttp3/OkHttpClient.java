@@ -30,6 +30,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import netprophet.NetProphetDns;
 import netprophet.NetUtility;
 import android.content.Context;
 import okhttp3.internal.Internal;
@@ -150,12 +151,17 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   /* NetProphet */
   Context context;
   static Context staticContext;
-  
+  static NetProphetDns netProphetDns = null;
   static NetUtility netUtility;
   //TODO: deal with the context object, so developer doesn't need to specify context.
   public static void initializeNetProphet(Context context){
 	  NetUtility.getInstance(context, null);
 	  OkHttpClient.staticContext = context;
+	  netProphetDns = new NetProphetDns();
+  }
+  public static void initializeNetProphetDesktop(){
+	  OkHttpClient.staticContext = null;
+	  netProphetDns = new NetProphetDns();
   }
   
   public OkHttpClient(Context context) {
@@ -383,7 +389,12 @@ public void setContext(Context context) {
       proxyAuthenticator = Authenticator.NONE;
       authenticator = Authenticator.NONE;
       connectionPool = new ConnectionPool();
+      /* NetProphet */
+      dns = netProphetDns;
+      /*
       dns = Dns.SYSTEM;
+      */
+      
       followSslRedirects = true;
       followRedirects = true;
       retryOnConnectionFailure = true;

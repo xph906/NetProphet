@@ -46,7 +46,7 @@ public class DebugMain {
 
 	public static void getStringRequest(String url) throws Exception {
 		OkHttpClient client = new OkHttpClient(null).newBuilder().build();
-
+		
 		// Create request for remote resource.
 		Request request = new Request.Builder().url(url).build();
 		logger.log(Level.INFO, "Load url: " + url);
@@ -64,12 +64,12 @@ public class DebugMain {
 			displayTimingInfo(c);
 			return;
 		}
-
+ 
 		// Retrieve the response and display timing information
 		ResponseBody body = response.body();
 		String str = body.string();
 		displayTimingInfo(c);
-
+		logger.log(Level.INFO, "Done loading url: " + url+"\n");
 	}
 
 	public static void postJPGImage(String url, File file) throws Exception {
@@ -304,30 +304,8 @@ public class DebugMain {
 		//"http://52.11.26.222:3000/"
 		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
-		
-		String IPADDRESS_PATTERN =
-                "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
-		String LATENCY_PATTERN =
-                "[0-9]+(\\.[0-9]+)?";
-		Pattern mIPReg = Pattern.compile(IPADDRESS_PATTERN);
-		Pattern mLatReg = Pattern.compile(LATENCY_PATTERN);
-		String str = "2  * 172.18.136.228  49.903 ms  69.088 ms  89.250 ms  108.985 ms  118.973 ms";
-		Matcher matcher = mIPReg.matcher(str);
-		String mIP = null;
-		int index = 0;
-		if(matcher.find()){
-		    mIP = matcher.group();
-		    index = matcher.end();
-		}
-		logger.info("found IP: "+mIP);
-		matcher = mLatReg.matcher(str);
-		int count=0;
-		while(matcher.find(index)){
-		    //logger.info("AA "+matcher.region(matcher.start(),matcher.end() ).toString());
-		    logger.info(String.format(
-		    		"float:%f\n",Float.valueOf( matcher.group()) ));
-		    index = matcher.end() ;		            
-		}
+		OkHttpClient.initializeNetProphetDesktop();
+	
 		
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
@@ -336,14 +314,16 @@ public class DebugMain {
 		DebugMain.getStringRequest(url);
 		
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
-		logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
+		//logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
 		
-		//DebugMain.getStringRequest("http://www.sina.com.cn/");
-		//DebugMain.getStringRequest("https://www.tmall.com");
+		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml");
+		DebugMain.getStringRequest("https://www.tmall.com");
+		
 		DebugMain.getStringRequest("http://www.cnn.com");
 		DebugMain.getStringRequest("https://www.facebook.com");
-		//DebugMain.getStringRequest("http://51yes.com");
+		DebugMain.getStringRequest("http://51yes.com");
 		
+		/*
 		String addressCache = "addressCache";
 		printDNSCache(addressCache);
 		 Cache cache = new Cache();
@@ -391,6 +371,7 @@ public class DebugMain {
 		 for(RRset r : rs){
 			 System.err.println("display cache: "+r);
 		 }
+		 */
 		 /*DebugMain.getStringRequest("http://www.douban.com");
 		 rs = secondCache.findRecords(Name.fromString(hn+'.'), Type.A);
 		 for(RRset r : rs){
@@ -399,8 +380,9 @@ public class DebugMain {
 		 
 		 //printDNSCache(addressCache);
 		//DebugMain.getStringRequest("https://www.baidu.com");
-		/*
+		
 		// Testing error handling
+		/*
 		DebugMain.getStringRequest("http://www.snwx.com/book/5/5450/1661585.html");
 		url = oreganURL + "404page";
 		DebugMain.getStringRequest(url);
@@ -408,14 +390,21 @@ public class DebugMain {
 		DebugMain.getStringRequest(url);
 		url = "http://" + hostOregan + ':' + tcpPort + '/';
 		DebugMain.getStringRequest(url);
+		*/
 
-		DebugMain.getStringRequest("http://www.sina.com.cn/");
+		//DebugMain.getStringRequest("http://www.sina.com.cn/");
 		DebugMain.getStringRequest("http://www.douban.com");
-		DebugMain.getStringRequest("http://www.cnn.com");
-		DebugMain.getStringRequest("https://www.facebook.com");
-		DebugMain.getStringRequest("https://www.baidu.com");
-		
-		
+		//DebugMain.getStringRequest("http://www.cnn.com");
+		//DebugMain.getStringRequest("https://www.facebook.com");
+		//DebugMain.getStringRequest("https://www.baidu.com"); 
+		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/sleep-2000");
+		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/sleep-2000");
+		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/sleep-2000");
+		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/sleep-2000");
+		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/sleep-2000");
+		//DebugMain.getStringRequest("https://www.douban.com/note/330868686/");
+		DebugMain.getStringRequest("http://news.sina.com.cn/c/nd/2016-03-21/doc-ifxqnskh1078277.shtml");
+		/*
 		// Testing response transmission delay.
 		logger.log(Level.INFO, "Testing: response transmission delay");
 		url = oreganURL + "get-mini-file";
