@@ -40,7 +40,7 @@ import okhttp3.internal.Util;
 import okhttp3.internal.http.StreamAllocation;
 import okhttp3.internal.io.RealConnection;
 import okhttp3.internal.tls.OkHostnameVerifier;
-
+import static okhttp3.internal.Internal.logger;
 /**
  * Factory for {@linkplain Call calls}, which can be used to send HTTP requests and read their
  * responses. Most applications can use a single OkHttpClient for all of their HTTP requests,
@@ -159,9 +159,20 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
 	  OkHttpClient.staticContext = context;
 	  netProphetDns = new NetProphetDns();
   }
+  public static void disableLogger(){
+	  //logger.
+  }
   public static void initializeNetProphetDesktop(){
 	  OkHttpClient.staticContext = null;
 	  netProphetDns = new NetProphetDns();
+  }
+  public static void initializeNetProphet(Context context, NetProphetDns  dns){
+	  NetUtility.getInstance(context, null);
+	  OkHttpClient.staticContext = context;
+	  netProphetDns = dns;
+  }
+  public static NetProphetDns getNetProphetDns(){
+	  return netProphetDns;
   }
   
   public OkHttpClient(Context context) {
@@ -390,7 +401,10 @@ public void setContext(Context context) {
       authenticator = Authenticator.NONE;
       connectionPool = new ConnectionPool();
       /* NetProphet */
-      dns = netProphetDns;
+      if(netProphetDns != null)
+    	  dns = netProphetDns;
+      else
+    	  dns = Dns.SYSTEM;
       /*
       dns = Dns.SYSTEM;
       */

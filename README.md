@@ -12,7 +12,7 @@ Usage:
   Initialization:
     OkHttpClient.initializeNetProphet(getApplicationContext());
 
-
+When importing NetPropohet, dnsjava is required
 
 Steps to import into Eclipse
   1. mvn eclipse:eclipse
@@ -23,6 +23,11 @@ Steps to import into Eclipse
       <artifactId>gson</artifactId>
       <version>2.2.4</version>
     </dependency> 
+    <dependency>
+      <groupId>dnsjava</groupId>
+      <artifactId>dnsjava</artifactId>
+      <version>2.1.7</version>
+    </dependency>
   4. mkdir tmp
 
   In eclipse

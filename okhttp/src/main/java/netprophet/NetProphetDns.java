@@ -65,13 +65,13 @@ public class NetProphetDns implements Dns {
         List<InetAddress> cachedRecordList = new ArrayList<InetAddress>();
         StringBuilder errorMsg = new StringBuilder();
         if(searchSystemDNSCache(hostname,cachedRecordList, errorMsg)){
-        	logger.info("  found record in system cache: "+hostname);
+        	//logger.info("  found record in system cache: "+hostname);
             return cachedRecordList;
         }
         InetAddress cachedRecord = searchCache(defaultCache, hostname);
         if (cachedRecord != null){
             cachedRecordList.add(cachedRecord);
-            logger.info("  found record in default cache: "+hostname);
+            //logger.info("  found record in default cache: "+hostname);
             //System.err.flush();
             return cachedRecordList;
         }
@@ -79,13 +79,13 @@ public class NetProphetDns implements Dns {
             cachedRecord = searchCache(secondLevelCache, hostname);
             if (cachedRecord != null){
                 cachedRecordList.add(cachedRecord);
-                logger.info("  found record in second level cache: "+hostname);
+                //logger.info("  found record in second level cache: "+hostname);
                 executor.execute(new AsynLookupTask(hostname));
                 return cachedRecordList;
             }
         }
         //logger.info("defaultCache Entry:"+defaultCache.getSize() +" secCacheEntry:"+secondLevelCache.getSize());
-        logger.info("do synchronous lookup!  "+hostname);
+        //logger.info("do synchronous lookup!  "+hostname);
         return synchronousLookup(hostname);
     }
 
@@ -121,35 +121,45 @@ public class NetProphetDns implements Dns {
     private Cache secondLevelCache; //this cache
     private long userDefinedTTL, userDefinedNegTTL;
     /* Default lookup server*/
-    private int dnsDefaultTimeout;
-    LinkedList<TimeoutExceptionItem> longTimeoutItems;	//used to increase dnsDefaultTimeout.
-    LinkedList<TimeoutExceptionItem> dnsDelayItems; 	//used to decrease dnsDefaultTimeout.
+    private int dnsTimeout;
+    
+    // Stores all delays larger than timeout. 
+    // used to increase dnsDefaultTimeout.
+    private LinkedList<TimeoutExceptionItem> longDnsDelayItems;	
+    // Stores all delays, including the one larger than timeout.
+    // used to decrease dnsDefaultTimeout.
+    private LinkedList<TimeoutExceptionItem> dnsDelayItems; 
     private String dnsServer;
     private Resolver resolver, resolverWithLongTimeout ;
     private Map<Name, Set<Name>> host2DNSName;
     private boolean enableSecondLevelCache;
-    ExecutorService executor = Executors.newFixedThreadPool(5);
-
+    ExecutorService executor;
+    ExecutorService listOperationExecutor;
+    
     /*
      * If dns failed because of timeout, start an asynchronous dns
      *   lookup task. If succeeded, add one longTimeoutItems object
      *   in `longTimeoutItems`.
      *
      * */
-    public void setDnsDefaultTimeout(int dnsDefaultTimeout) {
-        this.dnsDefaultTimeout = dnsDefaultTimeout;
+    public void setDnsTimeout(int dnsDefaultTimeout) {
+        this.dnsTimeout = dnsDefaultTimeout;
     }
+    public int getDnsTimeout(){
+    	return dnsTimeout;
+    }
+    
     /*
      * TODO: this function is not fully implemented.
      *   Called every time when either of following changed:
-     *    1. longTimeoutItems.
+     *    1. longDnsDelayItems.
      *    2. dnsDelayItems.
      *    2. dnsDefaultTimeout.
      *  */
-    private void adjustTimeout(){
-        if (longTimeoutItems.size() > LongTimeoutItemThreshold) {
+    synchronized private void adjustTimeout(){
+        if (longDnsDelayItems.size() >= LongTimeoutItemThreshold) {
             long largestDelay = 0, smalledstDelay = hardDNSTimeout;
-            for (TimeoutExceptionItem item : longTimeoutItems){
+            for (TimeoutExceptionItem item : longDnsDelayItems){
                 if(item.delay > largestDelay)
                     largestDelay = item.delay;
                 if(item.delay < smalledstDelay)
@@ -160,11 +170,13 @@ public class NetProphetDns implements Dns {
             int newDnsDefaultTimeout = (int)((largestDelay+500)/1000);      
             if (newDnsDefaultTimeout > hardDNSTimeout)
                 newDnsDefaultTimeout = hardDNSTimeout;
-            logger.info("DNSTimeout has been updated[1] from "+
-                    dnsDefaultTimeout+" to "+newDnsDefaultTimeout);
+            if (newDnsDefaultTimeout < 2)
+    			newDnsDefaultTimeout = 2;
+           logger.info("DNSTimeout has been updated[1] from "+
+        		   dnsTimeout+" to "+newDnsDefaultTimeout);
             resolver.setTimeout(newDnsDefaultTimeout);
-            dnsDefaultTimeout = newDnsDefaultTimeout;
-            longTimeoutItems.clear();
+            dnsTimeout = newDnsDefaultTimeout;
+            longDnsDelayItems.clear();
         }
         else{
         	if (dnsDelayItems.size() > UpdateDNSTimeoutThreshold){
@@ -179,21 +191,32 @@ public class NetProphetDns implements Dns {
         		if (newDnsDefaultTimeout < 2)
         			newDnsDefaultTimeout = 2;
         		logger.info("DNSTimeout has been updated[2] from "+
-                        dnsDefaultTimeout+" to "+newDnsDefaultTimeout);
+        				dnsTimeout+" to "+newDnsDefaultTimeout);
                 resolver.setTimeout(newDnsDefaultTimeout);
-                dnsDefaultTimeout = newDnsDefaultTimeout;
+                dnsTimeout = newDnsDefaultTimeout;
                 dnsDelayItems.clear();
         	}
         }
     }
-    
+    /* The two delay item list should be manipulated in synchronized methods */
+    synchronized void addItemToDelayItems(TimeoutExceptionItem delayItem, 
+    		TimeoutExceptionItem longDelayItem){
+    	if (delayItem != null ) dnsDelayItems.add(delayItem);
+    	if (longDelayItem != null ) longDnsDelayItems.add(longDelayItem); 
+    }
+    public LinkedList<TimeoutExceptionItem> getLongDnsDelayItems(){
+    	return longDnsDelayItems;
+    }
+    public LinkedList<TimeoutExceptionItem> getdnsDelayItems(){
+    	return dnsDelayItems;
+    }
     /* TODO: this function is not fully implemented.
-     * Empty longTimeoutItems and dnsDelayItems
+     * Empty longDnsDelayItems and dnsDelayItems
      */
-    public void changeNetworkingState(){
-    	longTimeoutItems.clear();
+    synchronized public void changeNetworkingState(){
+    	longDnsDelayItems.clear();
     	dnsDelayItems.clear();
-    	dnsDefaultTimeout = DefaultTimeout;
+    	dnsTimeout = DefaultTimeout;
     }
     
     public void setEnableSecondLevelCache(boolean enableSecondLevelCache) {
@@ -206,15 +229,18 @@ public class NetProphetDns implements Dns {
         secondLevelCache = new Cache();
         secondLevelCache.setMaxEntries(maxSecondLevCacheEntry);
         dnsServer = null;
-        dnsDefaultTimeout = DefaultTimeout; //default: 10 s
+        dnsTimeout = DefaultTimeout; //default: 10 s
         userDefinedTTL = 60 * 60; //default: 1 hour
-        resolver = createNewResolverBasedOnDnsServer(dnsDefaultTimeout);
+        resolver = createNewResolverBasedOnDnsServer(dnsTimeout);
         resolverWithLongTimeout = createNewResolverBasedOnDnsServer(hardDNSTimeout);
         host2DNSName = createLRUMap(100);
 
         enableSecondLevelCache = EnableSecondLevelCache;
-        longTimeoutItems = new LinkedList<TimeoutExceptionItem>();
+        longDnsDelayItems = new LinkedList<TimeoutExceptionItem>();
         dnsDelayItems = new LinkedList<TimeoutExceptionItem>();
+        
+        executor = Executors.newFixedThreadPool(5);
+        listOperationExecutor = Executors.newFixedThreadPool(10);
     }
 
     /*
@@ -327,15 +353,17 @@ public class NetProphetDns implements Dns {
 
             //Cannot find the hostname, returns directly.
             if (records == null){
-                if(dnsDelay > dnsDefaultTimeout){
+                if(dnsDelay > dnsTimeout){
                     //error caused by timeout
                     //start an asynchronous dns lookup.
                     executor.execute(new AsynLookupTask(hostname));
                 }
-                return null;
+                return new ArrayList<InetAddress>();
             }
-            dnsDelayItems.add(new TimeoutExceptionItem(System.currentTimeMillis(), dnsDelay, hostname));
-            adjustTimeout();
+            listOperationExecutor.execute(
+            		new DelayItemListOperationTask(
+            				new TimeoutExceptionItem(System.currentTimeMillis(), dnsDelay, hostname), null));
+
             // Update the cache.
             ArrayList<InetAddress> rs = new ArrayList<InetAddress>(records.length);
             RRset rrset = new RRset();
@@ -373,7 +401,7 @@ public class NetProphetDns implements Dns {
         }
         catch(Exception e){
             e.printStackTrace();
-            return null;
+            return new ArrayList<InetAddress>();
         }
     }
 
@@ -507,14 +535,19 @@ public class NetProphetDns implements Dns {
                 logger.info("  Asyncronous DNS lookup done in "+dnsDelay +" ms. Successful:"+isSucc);
                 if(records==null)
                     return ;
-                if (dnsDelay > dnsDefaultTimeout) {
-                    longTimeoutItems.add(new TimeoutExceptionItem(
-                            System.currentTimeMillis(), dnsDelay, hostname));
+                if (dnsDelay > dnsTimeout) {
+                    listOperationExecutor.execute(
+                    	new DelayItemListOperationTask(
+                    		new TimeoutExceptionItem(System.currentTimeMillis(), dnsDelay, hostname),
+                   			new TimeoutExceptionItem(System.currentTimeMillis(), dnsDelay, hostname)));
                 }
-                dnsDelayItems.add(new TimeoutExceptionItem(
-                		System.currentTimeMillis(), dnsDelay, hostname));
-                adjustTimeout();
-
+                else{
+                	 listOperationExecutor.execute(
+                    	new DelayItemListOperationTask(
+                     		new TimeoutExceptionItem(System.currentTimeMillis(), dnsDelay, hostname),
+                    		null));
+                }
+                
                 // Update the cache.
                 ArrayList<InetAddress> rs = new ArrayList<InetAddress>(records.length);
                 RRset rrset = new RRset();
@@ -544,6 +577,27 @@ public class NetProphetDns implements Dns {
             }
             catch(Exception e){
                 logger.severe("error in doLookUp asynchronously: "+e);
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    private class DelayItemListOperationTask implements Runnable {
+        private TimeoutExceptionItem delayItem;
+        private TimeoutExceptionItem longDelayItem;    
+        public DelayItemListOperationTask(TimeoutExceptionItem delayItem, TimeoutExceptionItem longDelayItem){
+            this.delayItem = delayItem;
+            this.longDelayItem = longDelayItem;
+        }
+
+        @Override
+        public void run() {
+            try {
+                addItemToDelayItems(delayItem, longDelayItem);
+                adjustTimeout();
+            }
+            catch(Exception e){
+                logger.severe("error in DelayItemListOperationTask: "+e);
                 e.printStackTrace();
             }
         }
