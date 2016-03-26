@@ -1,16 +1,24 @@
 package netprophet;
 
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
 
+import netprophet.NetProphetPropertyManager.DNSServer;
+import okhttp3.Call;
 import okhttp3.Dns;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -23,6 +31,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.logging.Level;
 
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.Cache;
@@ -33,6 +42,10 @@ import org.xbill.DNS.Record;
 import org.xbill.DNS.Resolver;
 import org.xbill.DNS.SimpleResolver;
 import org.xbill.DNS.Type;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+
 import static okhttp3.internal.Internal.logger;
 /**
  * Created by xpan on 3/2/16.
@@ -44,6 +57,7 @@ public class NetProphetDns implements Dns {
     final static private int DefaultTimeout = 10;
     final static private int LongTimeoutItemThreshold = 3;
     final static private int UpdateDNSTimeoutThreshold = 20;
+    final static private int DNSTestingHostNumber = 10;
     //put this in the configure file.
     final static private boolean EnableSecondLevelCache = true;
 
@@ -241,6 +255,9 @@ public class NetProphetDns implements Dns {
         
         executor = Executors.newFixedThreadPool(5);
         listOperationExecutor = Executors.newFixedThreadPool(10);
+        
+        List<String> hosts = loadDNSServerTestingHostList();
+        findBestDNSServer(hosts);
     }
 
     /*
@@ -615,5 +632,108 @@ public class NetProphetDns implements Dns {
             logger.severe("error in ModifyARecordTTL");
             e.printStackTrace();
         }
+    }
+    
+    /*TODO: First fetch URLs from database.
+     * only failed, load testing host from server.
+     * */
+    private List<String> loadDNSServerTestingHostList(){
+    	NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
+    	String testHostListURL = manager.getDNSServerTestingURLList();
+    	OkHttpClient client = new OkHttpClient(null).newBuilder().build();
+		Request request = new Request.Builder().url(testHostListURL).build();
+		Call c = client.newCall(request);
+		Response response;
+		List<String> hosts = new LinkedList<String>();
+		try {
+			response = c.execute();
+			String contents = response.body().string();
+			Gson g = new Gson();
+			String[] urls = g.fromJson(contents, String[].class);
+			for(String u : urls){
+				try{
+					URL url = new URL(u);
+					hosts.add(url.getHost());
+					if (hosts.size() > DNSTestingHostNumber)
+						break;
+				}
+				catch(Exception e){
+					logger.warning("error in parsing url: "+u);
+				}
+			}
+			return hosts;
+		} catch (Exception e) {
+			return null;
+		}
+		
+    }
+    
+    private void findBestDNSServer(List<String> hostnames){
+    	NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
+    	Map<String, DNSServer> dnsServerMap = manager.getDNSServerMap();
+    	Map<String, Map<String, List<Integer>>> results = new HashMap<String, Map<String, List<Integer>>>();
+    	try{
+	    	for(int i=0; i<5; i++){
+	    		for(DNSServer server : dnsServerMap.values()){
+	    			//logger.info("start testing :"+server);
+	    			Map<String, List<Integer>> serverData = results.get(server.name);
+	    			if (serverData == null){
+	    				serverData = new HashMap<String, List<Integer>>();
+	    				results.put(server.name, serverData);
+	    			}
+	    			
+		    		for(String hostname : hostnames){
+				        Lookup lookup = new Lookup(hostname, Type.A);
+				        Resolver res = null;
+				        if(hostname != "local")
+				        	res = new SimpleResolver();
+				        else
+				        	res = new SimpleResolver(server.IP);
+				        res.setTimeout(5);
+				        lookup.setResolver(res);
+				        lookup.setCache(null);
+				        long dnsStartTimeout = System.currentTimeMillis();
+				        Record[] records = lookup.run();
+				        long dnsDelay = System.currentTimeMillis() - dnsStartTimeout;
+				        boolean isSucc = !(records == null);
+				        if (!isSucc) dnsDelay = 10000;
+				        //logger.info("  done DNS lookup "+hostname+" in "+dnsDelay +" ms" +" isSucc:"+isSucc);
+				        if(serverData.containsKey(hostname))
+				        	serverData.get(hostname).add((int)dnsDelay);
+				        else{
+				        	List<Integer> l = new LinkedList<Integer>();
+				        	l.add((int)dnsDelay);
+				        	serverData.put(hostname, l);
+				        }
+		    		}
+	    		}
+	    		logger.info("finish the "+i+" round");
+	    	}
+	    	Set<String> servers = results.keySet();
+	    	for(String server : servers) {   		
+	    		Map<String, List<Integer>> serverData = results.get(server);
+	    		Set<String> hosts = serverData.keySet();
+	    		long val = 0;
+	    		StringBuilder sb = new StringBuilder();
+	    		for(String host : hosts){
+	    			List<Integer> data = serverData.get(host);
+	    			Collections.sort(data);
+	    			val += data.get(data.size()/2);		
+	    			sb.append("  "+host+": ");
+	    			for(Integer v : data){
+	    				sb.append(v+" ");
+	    			}
+	    			sb.append("\n");
+	    			
+	    		}
+	    		val = val / hosts.size();
+	    		logger.info("DNS Server: "+server+" "+val+" ms");
+	    		logger.info(sb.toString());
+	    	}
+    	}
+    	catch(Exception e){
+    		logger.severe("errpr in findBestDNSServer: "+e);
+    		e.printStackTrace();
+    	}
     }
 }
