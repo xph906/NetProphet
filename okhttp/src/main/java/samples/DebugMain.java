@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import netprophet.NetProphet.NetProphetClient;
 import netprophet.NetProphetPropertyManager;
 import okhttp3.Call;
 import okhttp3.Call.CallStatInfo;
@@ -22,6 +23,7 @@ import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
 import okhttp3.Request.RequestTimingANP;
 import okhttp3.RequestBody;
@@ -46,7 +48,8 @@ public class DebugMain {
 
 	public static void getStringRequest(String url) throws Exception {
 		OkHttpClient client = new OkHttpClient().newBuilder().build();
-		
+		//NetProphetClient client1 = new NetProphetClient().newBuilder().build();
+		 
 		// Create request for remote resource.
 		Request request = new Request.Builder().url(url).build();
 		logger.log(Level.INFO, "Load url: " + url);
@@ -68,7 +71,7 @@ public class DebugMain {
 		// Retrieve the response and display timing information
 		ResponseBody body = response.body();
 		String str = body.string();
-		//displayTimingInfo(c);
+		displayTimingInfo(c);
 		//logger.log(Level.INFO, "Done loading url: " + url+"\n");
 	}
 
@@ -205,7 +208,6 @@ public class DebugMain {
 
 	private static void displayTimingInfo(Call c) throws Exception {
 		CallStatInfo timingObj = c.getCallStatInfo();
-		c.storeCallStatInfo(true);
 		
 		if (timingObj == null)
 			throw new Exception("timing is null!");

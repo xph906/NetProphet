@@ -107,6 +107,20 @@ final class RealCall implements Call {
 			return;
 		else if(!storeToRemoteServer && isCallStatInfoSavedLocally)
 			return ;
+		else {
+			if(urlsANP!=null && urlsANP.size()>0){
+				try {
+					URL url = new URL(urlsANP.get(0).split(" ")[1]);
+					if(url.getHost().toLowerCase().equals(propertyManager.getServerHost().toLowerCase())){
+						logger.info("ignore request to server: "+url);
+						return ;
+					}
+				} catch (MalformedURLException e) {
+					logger.severe("error parsing the url [storeCallStatInfo]: "+urlsANP.get(0)+" "+e);
+					return ;
+				}
+			}
+		}
 		
 		CallStatInfo callStatInfo = getCallStatInfo();	
 		Iterator<String> urlIter = urlsANP.iterator();
@@ -118,8 +132,6 @@ final class RealCall implements Call {
 				.getInstance();
 		Gson gson = new GsonBuilder().create();
 		
-		//String myAndroidDeviceId = mTelephony.getDeviceId(); 
-		//String platformType = System.getProperty("java.vm.name");
 		String userID = "non-android-user";
 		if(context!=null && isRunningOnPhone){
 			try{
@@ -145,19 +157,6 @@ final class RealCall implements Call {
 			}
 			String url = methodAndURL[1];
 			String method = methodAndURL[0];
-			
-			//we do not store requests sent to NetProphet server
-			URL urlObj = null;
-			try {
-				urlObj = new URL(url);
-				if(propertyManager.getServerHost().toLowerCase()
-						== urlObj.getHost().toLowerCase()){
-					return ;
-				}
-			} catch (Exception e) {
-				logger.log(Level.WARNING, "error in parsing URL: "+ url+" because "+e);
-				return;
-			}
 			
 			RequestTimingANP timingObj = reqIter.next();
 			ResponseInfoANP respObj = respIter.next();
@@ -200,7 +199,7 @@ final class RealCall implements Call {
 			prevObj = obj;
 			prevReqID = curID;		
 		}
-		//TODO: this NetProphetNetworkObj is a bogus one;
+
 		/* long reqID, String type, String name, int wifiSignal, int cellSignal, 
 		 * int mcc, int mnc, int lac, int firstMileLat, int firstMilePLR */
 		NetProphetNetworkData networkData = 
@@ -208,35 +207,39 @@ final class RealCall implements Call {
 						WIFISigLevelANP, CellSigLevelANP, MCCANP, MNCANP, LACANP, 
 						0, 0);
 
+		//this is only for debugging.
 		if(storeToRemoteServer && !isCallStatInfoSavedRemotely){
-			logger.log(Level.INFO, "DEBUG: prepare store to remote Server ");
+			logger.log(Level.INFO, "DEBUG: prepare store to remote Server "+objList.get(0).getUrl());
 			Iterator<NetProphetHTTPRequestInfoObject> objIter =
 					objList.iterator();
 			Vector arr = new Vector();
 			while(objIter.hasNext()){
 				arr.add(objIter.next());
 			}
-			arr.add(networkData);
-			
+			arr.add(networkData);	
 			String objStr = gson.toJson(arr);
 			//System.err.println(objStr);
 			asyncTaskManager.postTask(
 					new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
-			isCallStatInfoSavedRemotely = true;
+			isCallStatInfoSavedRemotely = true;		
+			//DatabaseHandler.sendObjectsToRemoteDB(objList);
+			//isCallStatInfoSavedRemotely = true;
 		}
 		
 		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
 			try{
 				DatabaseHandler dbHandler = new DatabaseHandler(context);
+				//if a call contains multiple requests (e.g., redirection, retries), 
+				//all the request information will be stored.
+				//However, only one instance of NetProphetNetworkData is stored, whose reqID
+				//corresponds to the first request ID for this call.
 				asyncTaskManager.postTask(dbHandler.getRequestBatchInsertTask(objList));
-				isCallStatInfoSavedLocally = true;
-				//TODO: store NetProphetNetworkData data into database.	
 				asyncTaskManager.postTask(dbHandler.getNetSingleInsertTask(networkData));
-				logger.info("debug networkDATA: "+networkData.toString());
+				isCallStatInfoSavedLocally = true;
 			}
 			catch(Exception e){
-				logger.severe("error in storing to db: "+e.toString());
+				logger.severe("error in storing data to db: "+e.toString());
 				e.printStackTrace();
 			}
 		}

@@ -11,8 +11,13 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import static okhttp3.internal.Internal.logger;
 /**
  * Created by dell on 2016/1/26.
  */
@@ -24,7 +29,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "NetProphet.db";
 
     private static ReentrantLock db_lock = new ReentrantLock();
-
+    
+    private AsyncTaskManager asyncTaskManager;
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -52,15 +58,12 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(createTable(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.COLUMNS));
         db.execSQL(createTable(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.COLUMNS));
-        //db.execSQL("CREATE INDEX request_id_index on " + NetProphetData.TABLE_NAME + "(" + NetProphetData.REQUEST_ID + ")");
-        //System.err.println("Table Exists: "+isTableExists(NetProphetData.RequestColumns.TABLE_NAME));
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
-    }
-    
+    }   
     private boolean isTableExists(String tbName){
     	boolean tableExists = false;
     	try{
@@ -104,10 +107,41 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    /*
-        NetProphetHTTPRequestInfo Database Interface
-     */
-
+    //TODO: change this method to private after testing
+    static public void sendObjectsToRemoteDB(List objList){
+    	if (objList.size() <= 0)
+    		return ;
+    	AsyncTaskManager taskManager = AsyncTaskManager.getInstance();
+    	NetProphetPropertyManager propertyManager = NetProphetPropertyManager.getInstance();
+    	Gson gson = new GsonBuilder().create();
+		Vector arr = new Vector();
+		arr.addAll(objList);
+		String objStr = gson.toJson(arr);
+		taskManager.postTask(
+				new PostCompressedCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
+		logger.info("done sending "+objList.size()+" item to remote server");
+    }
+    
+    //TODO: drop the  table.
+    public void clearDatabase(String tablename){
+    	
+    }
+    //TODO: send DB data to remote server.
+    //This method will always be executed in another thread
+    public boolean synchronizeDatabase(){
+    	//change this part of codes, 
+    	//each time, read at most 1000 records into memory and sent to server
+    	List<NetProphetHTTPRequestInfoObject> requestobjs = getAllRequestInfo();
+    	sendObjectsToRemoteDB(requestobjs);
+    	List<NetProphetNetworkData> networkobjs = getAllNetInfo();
+    	sendObjectsToRemoteDB(networkobjs);
+    	
+    	//then drop the table and creates new table
+    	//only when it's confirmed that the server has received the data.
+    	return true;
+    }
+    
+    /* NetProphetHTTPRequestInfoObject Database Interface */
     public void addRequestInfo(NetProphetHTTPRequestInfoObject infoObject) {
         db_lock.lock();
         try {
@@ -181,8 +215,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             db_lock.unlock();
         }
     }
-
-
 
     public void addRequestInfos(List<NetProphetHTTPRequestInfoObject> objList)
     {
@@ -263,7 +295,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-
     public void deleteRequestInfo(long req_id) {
         db_lock.lock();
         try {
@@ -282,43 +313,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             }
         } finally {
             db_lock.unlock();
-        }
-    }
-
-    public List<NetProphetHTTPRequestInfoObject> getAllRequestInfo() {
-        db_lock.lock();
-        List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
-        try {
-            String selectQuery = "SELECT * FROM " + NetProphetData.RequestColumns.TABLE_NAME;
-            SQLiteDatabase db = this.getReadableDatabase();
-            db.beginTransaction();
-            try {
-                Cursor cursor = db.rawQuery(selectQuery, null);
-                db.setTransactionSuccessful();
-                if (cursor.moveToFirst()) {
-                    do {
-                        NetProphetHTTPRequestInfoObject infoObject = new NetProphetHTTPRequestInfoObject(
-                                cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
-                                cursor.getLong(4), cursor.getLong(5), cursor.getLong(6), cursor.getLong(7),
-                                cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
-                                cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
-                                cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
-                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
-                                cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
-
-                        requestList.add(infoObject);
-                    } while (cursor.moveToNext());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.err.println("Failed to get request info!");
-            } finally {
-                db.endTransaction();
-                db.close();
-            }
-        } finally {
-            db_lock.unlock();
-            return requestList;
         }
     }
 
@@ -349,8 +343,45 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             return count;
         }
     }
+    
+    @SuppressWarnings("finally")
+	private List<NetProphetHTTPRequestInfoObject> getAllRequestInfo() {
+        db_lock.lock();
+        List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
+        try {
+            String selectQuery = "SELECT * FROM " + NetProphetData.RequestColumns.TABLE_NAME;
+            SQLiteDatabase db = this.getReadableDatabase();
+            db.beginTransaction();
+            try {
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                db.setTransactionSuccessful();
+                if (cursor.moveToFirst()) {
+                    do {
+                        NetProphetHTTPRequestInfoObject infoObject = new NetProphetHTTPRequestInfoObject(
+                                cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
+                                cursor.getLong(4), cursor.getLong(5), cursor.getLong(6), cursor.getLong(7),
+                                cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
+                                cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
+                                cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
+                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
+                                cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
 
-    public List<NetProphetHTTPRequestInfoObject> getAllRequestInfoAndDelete()
+                        requestList.add(infoObject);
+                    } while (cursor.moveToNext());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.severe("Failed to get request info!");
+            } finally {
+                db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+            return requestList;
+        }
+    }
+    private List<NetProphetHTTPRequestInfoObject> getAllRequestInfoAndDelete()
     {
         db_lock.lock();
         List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
@@ -417,52 +448,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     }
 
-
-    public RequestSingleInsertTask getRequestSingleInsertTask(NetProphetHTTPRequestInfoObject infoObject)
-    {
-        return new RequestSingleInsertTask(infoObject);
-    }
-
-    public RequestBatchInsertTask getRequestBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
-    {
-        return new RequestBatchInsertTask(objList);
-    }
-
-    public class RequestSingleInsertTask implements Runnable{
-
-        private NetProphetHTTPRequestInfoObject infoObject;
-
-        public RequestSingleInsertTask(NetProphetHTTPRequestInfoObject obj)
-        {
-            this.infoObject = obj;
-        }
-
-        @Override
-        public void run() {
-            addRequestInfo(infoObject);
-        }
-    }
-
-    public class RequestBatchInsertTask implements Runnable{
-
-        private List<NetProphetHTTPRequestInfoObject> objectList;
-
-        public RequestBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
-        {
-            this.objectList = objList;
-        }
-
-        @Override
-        public void run() {
-            addRequestInfos(objectList);
-        }
-    }
-
-
-    /*
-       NetProphetNetworkData Database Interface
-    */
-
+    /* NetProphetNetworkData Database Interface */
     public void addNetInfo(NetProphetNetworkData infoObject)
     {
         db_lock.lock();
@@ -560,7 +546,35 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    public List<NetProphetNetworkData> getAllNetInfo() {
+    public long getNetInfoCount()
+    {
+        db_lock.lock();
+        long count = 0;
+        try{
+            SQLiteDatabase db = this.getReadableDatabase();
+            db.beginTransaction();
+            try{
+                String selectQuery = "SELECT count(*) FROM " + NetProphetData.NetInfoColumns.TABLE_NAME;
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                if(cursor.moveToFirst())
+                {
+                    count = cursor.getLong(0);
+                }
+            }catch (Exception e)
+            {
+                e.printStackTrace();
+                System.err.println("Failed to get network count!");
+            }finally {
+                db.endTransaction();
+                db.close();
+            }
+        }finally {
+            db_lock.unlock();
+            return count;
+        }
+    }
+
+    private List<NetProphetNetworkData> getAllNetInfo() {
         db_lock.lock();
         List<NetProphetNetworkData> requestList = new ArrayList<NetProphetNetworkData>();
         try {
@@ -591,36 +605,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             return requestList;
         }
     }
-
-    public long getNetInfoCount()
-    {
-        db_lock.lock();
-        long count = 0;
-        try{
-            SQLiteDatabase db = this.getReadableDatabase();
-            db.beginTransaction();
-            try{
-                String selectQuery = "SELECT count(*) FROM " + NetProphetData.NetInfoColumns.TABLE_NAME;
-                Cursor cursor = db.rawQuery(selectQuery, null);
-                if(cursor.moveToFirst())
-                {
-                    count = cursor.getLong(0);
-                }
-            }catch (Exception e)
-            {
-                e.printStackTrace();
-                System.err.println("Failed to get network count!");
-            }finally {
-                db.endTransaction();
-                db.close();
-            }
-        }finally {
-            db_lock.unlock();
-            return count;
-        }
-    }
-
-    public List<NetProphetNetworkData> getAllNetInfoAndDelete() {
+    private List<NetProphetNetworkData> getAllNetInfoAndDelete() {
         db_lock.lock();
         List<NetProphetNetworkData> requestList = new ArrayList<NetProphetNetworkData>();
         try {
@@ -642,7 +627,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.err.println("Failed to get network info!");
+                logger.severe("Failed to get network info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -653,16 +638,15 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
+    /* Task */
     public NetInfoSingleInsertTask getNetSingleInsertTask(NetProphetNetworkData infoObject)
     {
         return new NetInfoSingleInsertTask(infoObject);
     }
-
     public NetInfoBatchInsertTask getNetBatchInsertTask(List<NetProphetNetworkData> objList)
     {
         return new NetInfoBatchInsertTask(objList);
     }
-
     public class NetInfoSingleInsertTask implements Runnable{
 
         private NetProphetNetworkData infoObject;
@@ -677,7 +661,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             addNetInfo(infoObject);
         }
     }
-
     public class NetInfoBatchInsertTask implements Runnable{
 
         private List<NetProphetNetworkData> objectList;
@@ -690,6 +673,43 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         @Override
         public void run() {
             addNetInfos(objectList);
+        }
+    }
+    
+    public RequestSingleInsertTask getRequestSingleInsertTask(NetProphetHTTPRequestInfoObject infoObject)
+    {
+        return new RequestSingleInsertTask(infoObject);
+    }
+    public RequestBatchInsertTask getRequestBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
+    {
+        return new RequestBatchInsertTask(objList);
+    }
+    public class RequestSingleInsertTask implements Runnable{
+
+        private NetProphetHTTPRequestInfoObject infoObject;
+
+        public RequestSingleInsertTask(NetProphetHTTPRequestInfoObject obj)
+        {
+            this.infoObject = obj;
+        }
+
+        @Override
+        public void run() {
+            addRequestInfo(infoObject);
+        }
+    }
+    public class RequestBatchInsertTask implements Runnable{
+
+        private List<NetProphetHTTPRequestInfoObject> objectList;
+
+        public RequestBatchInsertTask(List<NetProphetHTTPRequestInfoObject> objList)
+        {
+            this.objectList = objList;
+        }
+
+        @Override
+        public void run() {
+            addRequestInfos(objectList);
         }
     }
 }

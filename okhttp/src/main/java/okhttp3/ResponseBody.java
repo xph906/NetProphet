@@ -60,10 +60,10 @@ import static okhttp3.internal.Util.UTF_8;
  * {@link #bytes()} or {@link #string()}. Or stream the response with either {@link #source()},
  * {@link #byteStream()}, or {@link #charStream()}.
  * 
- * * <p> NetProphet Timing: if customer calls string() or bitmap(), the response end
- * time will be automatically updated; otherwise, if customer used
+ * * <p> NetProphet Timing: if user calls string() or bitmap(), the response end
+ * time will be automatically updated; otherwise, if user used
  * streaming-based approach to read contents (i.e., byteStream, charStream), the
- * customer has to call void informFinishedReadingResponse() 
+ * user has to call void informFinishedReadingResponse() 
  *  1. text: string()  <= 5M works fine
  *  2. image: bitmap() 
  *  3. binary: TODO 
