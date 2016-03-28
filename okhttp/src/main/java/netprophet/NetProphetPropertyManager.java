@@ -50,8 +50,9 @@ public class NetProphetPropertyManager {
 					Boolean.valueOf(properties.getProperty("StoreToRemoteServerEveryRequest"));
 			
 			dnsServerMap = new HashMap<String, DNSServer>();
-			try (BufferedReader br = new BufferedReader(new InputStreamReader(
-				this.getClass().getClassLoader().getResourceAsStream(DNS_SERVER_LIST_FILE_NAME)))) {
+			try {
+				BufferedReader br = new BufferedReader(new InputStreamReader(
+						this.getClass().getClassLoader().getResourceAsStream(DNS_SERVER_LIST_FILE_NAME)));
 			    String line;
 			    while ((line = br.readLine()) != null) {
 			       line = line.trim();

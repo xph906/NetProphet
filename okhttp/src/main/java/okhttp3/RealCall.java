@@ -599,6 +599,9 @@ final class RealCall implements Call {
 			} catch (RequestException e) {
 				// The attempt to interpret the request failed. Give up.
 				/* NetProphet */
+				//request.getRequestTimingANP().setReqStartTimeANP(1); //REMOVE THIS LINE
+				//logger.severe("RETRYDEBUG:"+request.url()+" "+e);
+				
 				timingsANP.add(request.getRequestTimingANP());
 				infosANP.add(engine.getRequest().getResponseInfoANP());
 				// error recording routine
@@ -620,6 +623,9 @@ final class RealCall implements Call {
 						e.getLastConnectException(), null);
 
 				/* NetProphet */
+				//request.getRequestTimingANP().setReqStartTimeANP(1); //REMOVE THIS LINE
+				//logger.severe("RETRYDEBUG:"+request.url()+" "+e);
+				
 				timingsANP.add(request.getRequestTimingANP());
 				infosANP.add(engine.getRequest().getResponseInfoANP());
 				/* End NetProphet */
@@ -649,6 +655,9 @@ final class RealCall implements Call {
 				HttpEngine retryEngine = engine.recover(e, null);
 
 				/* NetProphet */
+				//request.getRequestTimingANP().setReqStartTimeANP(1); //REMOVE THIS LINE
+				//logger.severe("RETRYDEBUG:"+request.url()+" "+e);
+				
 				engine.getRequest().getRequestTimingANP()
 						.setRespEndTimeANP(System.currentTimeMillis());
 				timingsANP.add(request.getRequestTimingANP());

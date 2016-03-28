@@ -256,8 +256,9 @@ public class NetProphetDns implements Dns {
         executor = Executors.newFixedThreadPool(5);
         listOperationExecutor = Executors.newFixedThreadPool(10);
         
-        List<String> hosts = loadDNSServerTestingHostList();
-        findBestDNSServer(hosts);
+        //For debugging...
+        //List<String> hosts = loadDNSServerTestingHostList();
+        //findBestDNSServer(hosts);
     }
 
     /*
