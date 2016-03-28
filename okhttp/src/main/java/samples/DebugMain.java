@@ -45,7 +45,7 @@ import com.google.gson.Gson;
 public class DebugMain {
 
 	public static void getStringRequest(String url) throws Exception {
-		OkHttpClient client = new OkHttpClient(null).newBuilder().build();
+		OkHttpClient client = new OkHttpClient().newBuilder().build();
 		
 		// Create request for remote resource.
 		Request request = new Request.Builder().url(url).build();
@@ -82,7 +82,7 @@ public class DebugMain {
 		Request request = new Request.Builder().url(url).post(requestBody)
 				.build();
 
-		OkHttpClient client = new OkHttpClient(null).newBuilder().build();
+		OkHttpClient client = new OkHttpClient().newBuilder().build();
 		Call c = client.newCall(request);
 		logger.log(Level.INFO, "Post image "+file.getName()+" to url: " + url);
 		Response response = null;
@@ -104,7 +104,7 @@ public class DebugMain {
 				.parse("text/x-markdown; charset=utf-8");
 		final int postSize = size;
 		
-		OkHttpClient client = new OkHttpClient(null);
+		OkHttpClient client = new OkHttpClient();
 		RequestBody requestBody = new RequestBody() {
 			@Override
 			public MediaType contentType() {
@@ -157,7 +157,7 @@ public class DebugMain {
 			.url(url)
 			.post(body)
 			.build();
-		OkHttpClient client = new OkHttpClient(null);
+		OkHttpClient client = new OkHttpClient();
 		Call c = client.newCall(request);
 		try {
 			Response response = c.execute();
@@ -174,7 +174,7 @@ public class DebugMain {
 	}
 	
 	public static void asyncGetStringRequest(String url) throws Exception {
-		OkHttpClient client = new OkHttpClient(null);
+		OkHttpClient client = new OkHttpClient();
 
 		Request request = new Request.Builder().url(url).build();
 		logger.log(Level.INFO, "Load url asynchronously: " + url);
@@ -304,7 +304,7 @@ public class DebugMain {
 		//"http://52.11.26.222:3000/"
 		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
-		OkHttpClient.initializeNetProphetDesktop();
+		OkHttpClient.initializeNetProphetDesktop(false);
 	
 		
 	

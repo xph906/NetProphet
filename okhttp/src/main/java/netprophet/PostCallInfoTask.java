@@ -25,7 +25,7 @@ public class PostCallInfoTask implements Runnable{
     		this.serverURL = url;
     	}
     	this.contents = contents;
-    	this.client = new OkHttpClient(null);
+    	this.client = new OkHttpClient();
     	this.jsonType = MediaType.parse("application/json; charset=utf-8");
     }
 	  

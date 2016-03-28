@@ -164,7 +164,8 @@ public class NetProphetDns implements Dns {
     }
     
     /*
-     * TODO: this function is not fully implemented.
+     * TODO: this function is used to update DNSTimeout, 
+     *       it needs further design.
      *   Called every time when either of following changed:
      *    1. longDnsDelayItems.
      *    2. dnsDelayItems.
@@ -184,8 +185,8 @@ public class NetProphetDns implements Dns {
             int newDnsDefaultTimeout = (int)((largestDelay+500)/1000);      
             if (newDnsDefaultTimeout > hardDNSTimeout)
                 newDnsDefaultTimeout = hardDNSTimeout;
-            if (newDnsDefaultTimeout < 2)
-    			newDnsDefaultTimeout = 2;
+            if (newDnsDefaultTimeout < 3)
+    			newDnsDefaultTimeout = 3;
            logger.info("DNSTimeout has been updated[1] from "+
         		   dnsTimeout+" to "+newDnsDefaultTimeout);
             resolver.setTimeout(newDnsDefaultTimeout);
@@ -202,8 +203,8 @@ public class NetProphetDns implements Dns {
         		int newDnsDefaultTimeout = (int)((largestDelay+500)/1000) + 1;  
         		if (newDnsDefaultTimeout > hardDNSTimeout)
                     newDnsDefaultTimeout = hardDNSTimeout;
-        		if (newDnsDefaultTimeout < 2)
-        			newDnsDefaultTimeout = 2;
+        		if (newDnsDefaultTimeout < 3)
+        			newDnsDefaultTimeout = 3;
         		logger.info("DNSTimeout has been updated[2] from "+
         				dnsTimeout+" to "+newDnsDefaultTimeout);
                 resolver.setTimeout(newDnsDefaultTimeout);
@@ -641,7 +642,7 @@ public class NetProphetDns implements Dns {
     private List<String> loadDNSServerTestingHostList(){
     	NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
     	String testHostListURL = manager.getDNSServerTestingURLList();
-    	OkHttpClient client = new OkHttpClient(null).newBuilder().build();
+    	OkHttpClient client = new OkHttpClient().newBuilder().build();
 		Request request = new Request.Builder().url(testHostListURL).build();
 		Call c = client.newCall(request);
 		Response response;

@@ -154,17 +154,27 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   static NetProphetDns netProphetDns = null;
   static NetUtility netUtility;
   //TODO: deal with the context object, so developer doesn't need to specify context.
-  public static void initializeNetProphet(Context context){
+  public static void initializeNetProphet(Context context, boolean enableOptimization){
 	  NetUtility.getInstance(context, null);
 	  OkHttpClient.staticContext = context;
-	  netProphetDns = new NetProphetDns();
+	  if(enableOptimization){
+		  netProphetDns = new NetProphetDns();
+	  }
+	  else{
+		  netProphetDns = null; //enable default DNS.
+	  }
   }
   public static void disableLogger(){
 	  //logger.
   }
-  public static void initializeNetProphetDesktop(){
+  public static void initializeNetProphetDesktop(boolean enableOptimization){
 	  OkHttpClient.staticContext = null;
-	  netProphetDns = new NetProphetDns();
+	  if(enableOptimization){
+		  netProphetDns = new NetProphetDns();
+	  }
+	  else{
+		  netProphetDns = null; //enable default DNS.
+	  }
   }
   public static void initializeNetProphet(Context context, NetProphetDns  dns){
 	  NetUtility.getInstance(context, null);
@@ -175,10 +185,6 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
 	  return netProphetDns;
   }
   
-  public OkHttpClient(Context context) {
-    this(new Builder());
-    //this.context = context;
-  }
   /* End NetProphet*/
   public OkHttpClient() {
     this(new Builder());
