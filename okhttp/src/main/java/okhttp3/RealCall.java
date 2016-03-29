@@ -229,7 +229,7 @@ final class RealCall implements Call {
 		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
 			try{
-				DatabaseHandler dbHandler = new DatabaseHandler(context);
+				DatabaseHandler dbHandler = DatabaseHandler.getInstance(context);
 				//if a call contains multiple requests (e.g., redirection, retries), 
 				//all the request information will be stored.
 				//However, only one instance of NetProphetNetworkData is stored, whose reqID

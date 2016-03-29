@@ -14,7 +14,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import netprophet.NetProphet.NetProphetClient;
+import netprophet.NetProphet;
 import netprophet.NetProphetPropertyManager;
 import okhttp3.Call;
 import okhttp3.Call.CallStatInfo;

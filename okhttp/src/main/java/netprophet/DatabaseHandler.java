@@ -1,6 +1,7 @@
 package netprophet;
 
 
+import android.R.integer;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -9,6 +10,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
@@ -30,11 +32,33 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     private static ReentrantLock db_lock = new ReentrantLock();
     
-    private AsyncTaskManager asyncTaskManager;
+    protected ReentrantLock send_lock;
+    protected ReentrantLock tagSetLock;
+    
+    private boolean isSynchronizing;
+    private boolean isSyncSuccessful; //check if all requests successful.
+    private boolean isPreparingRequest; //ensure to dump table only when all requests have been prepared.
+    
+    private static DatabaseHandler instance = null;
+    
+    private HashSet<Integer> postTags;
 
-    public DatabaseHandler(Context context) {
+    public static DatabaseHandler getInstance(Context context) {
+        if(instance == null) {
+            instance = new DatabaseHandler(context);
+        }
+        return instance;
+    }
+
+    private DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        try{
+        send_lock = new ReentrantLock();
+        tagSetLock = new ReentrantLock();
+        postTags = new HashSet<>();
+        isSynchronizing = false;
+        isSyncSuccessful = true;
+        isPreparingRequest = false;
+        try{	
 	        if(!isTableExists(NetProphetData.RequestColumns.TABLE_NAME)){
 	        	System.err.println(NetProphetData.RequestColumns.TABLE_NAME + " table not exists");
 	        	SQLiteDatabase db = this.getWritableDatabase();
@@ -49,7 +73,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 	        }
 	    }
         catch(Exception e){
-        	System.err.println("DATABASE ERROR:"+e);
+        	logger.severe("NetProphet DATABASE ERROR:"+e);
         	e.printStackTrace();
         }
     }
@@ -108,7 +132,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     //TODO: change this method to private after testing
-    static public void sendObjectsToRemoteDB(List objList){
+    private void sendObjectsToRemoteDB(List objList){
     	if (objList.size() <= 0)
     		return ;
     	AsyncTaskManager taskManager = AsyncTaskManager.getInstance();
@@ -117,25 +141,149 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 		Vector arr = new Vector();
 		arr.addAll(objList);
 		String objStr = gson.toJson(arr);
-		taskManager.postTask(
-				new PostCompressedCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
-		logger.info("done sending "+objList.size()+" item to remote server");
+		addPostTag(objStr.hashCode());
+		taskManager.postTask(new PostCompressedCallInfoTask(objStr, propertyManager.getRemotePostReportURL(),this));
+		logger.info("DBDEBUG: Done sending "+objList.size()+" item to remote server");
+    }
+    
+    public void setSyncSuccessfulTag(boolean tag){
+    	this.isSyncSuccessful = tag;
+    }
+    
+    private void addPostTag(int hashcode) {
+        tagSetLock.lock();
+        postTags.add(hashcode);
+        tagSetLock.unlock();
+	}
+
+    protected void deletePostTag(int hashcode){
+        boolean isPostTagSetEmpty = false;    
+        tagSetLock.lock();
+        postTags.remove(hashcode);
+        isPostTagSetEmpty = postTags.isEmpty();
+        tagSetLock.unlock();
+        if(isPostTagSetEmpty){
+        	if(!isPreparingRequest && isSyncSuccessful){
+        		clearDatabase();    
+        	}
+        	else{
+        		logger.warning("DBDEBUG: cannot clear database because isPreparingRequest:"+
+        				isPreparingRequest+" and/or isSyncSuccessful:"+isSyncSuccessful);
+        	}
+        	if(!isPreparingRequest)
+        		isSynchronizing = false;
+        	logger.info("DBDEBUG: done synchronizing database and clearing tables");
+        }
+        else{
+        	logger.info("DBDEBUG: done synchronizing a part of DB. "
+        			+postTags.size()+" tasks remaining.");
+        }
     }
     
     //TODO: drop the  table.
-    public void clearDatabase(String tablename){
-    	
+    public void clearDatabase(){
+    	db_lock.lock();
+    	try{
+    		SQLiteDatabase db = this.getWritableDatabase();
+            db.execSQL("DROP TABLE HTTPRequestInfo");
+            db.execSQL("DROP TABLE NetworkInfo");
+
+            db.execSQL(createTable(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.COLUMNS));
+            db.execSQL(createTable(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.COLUMNS));
+    	}catch(Exception e){
+    		logger.severe("Clear Database failed."+e);
+            e.printStackTrace();
+    	}finally{
+    		db_lock.unlock();
+    	}
     }
+    
+    public void initEverything(){
+    	clearDatabase();
+    	isSynchronizing = false;
+    	isSyncSuccessful = true;
+    	isPreparingRequest = false;
+    	postTags.clear();
+    }
+    public String getDBSyncData(){
+    	return String.format("isSynchronizing:%b  isSyncSuccessful:%b  isPreparingReq:%b  sizeofPostTags:%d", 
+    			isSynchronizing, isSyncSuccessful, isPreparingRequest, postTags.size());
+    }
+
     //TODO: send DB data to remote server.
     //This method will always be executed in another thread
     public boolean synchronizeDatabase(){
     	//change this part of codes, 
     	//each time, read at most 1000 records into memory and sent to server
-    	List<NetProphetHTTPRequestInfoObject> requestobjs = getAllRequestInfo();
-    	sendObjectsToRemoteDB(requestobjs);
-    	List<NetProphetNetworkData> networkobjs = getAllNetInfo();
-    	sendObjectsToRemoteDB(networkobjs);
-    	
+    	if(isSynchronizing == true)
+    		return false;
+    	db_lock.lock();
+    		
+        try {
+            String selectQuery = "SELECT * FROM " + NetProphetData.RequestColumns.TABLE_NAME;
+            String selectQuery2 = "SELECT * FROM " + NetProphetData.NetInfoColumns.TABLE_NAME;
+            SQLiteDatabase db = this.getReadableDatabase();
+            //TODO: is transaction necessary for read operation?
+            //db.beginTransaction();
+            try {
+                Cursor cursor = db.rawQuery(selectQuery, null);
+                Cursor cursor2 = db.rawQuery(selectQuery2, null);
+                isSynchronizing = true; 
+                //db.setTransactionSuccessful();
+                try{
+                	isSyncSuccessful = true;
+                	isPreparingRequest = true;
+                	if(cursor.moveToFirst()) {
+                		while (!cursor.isAfterLast()) {
+                			List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
+                			do {
+                				NetProphetHTTPRequestInfoObject infoObject = new NetProphetHTTPRequestInfoObject(
+                                    cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
+                                    cursor.getLong(4), cursor.getLong(5), cursor.getLong(6), cursor.getLong(7),
+                                    cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
+                                    cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
+                                    cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
+                                    cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
+                                    cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
+                				requestList.add(infoObject);
+                			} while (cursor.moveToNext() && requestList.size() < 1000);
+                			//send  request;
+                			sendObjectsToRemoteDB(requestList);
+                		}
+                	}
+                	if (cursor2.moveToFirst()) {
+                		while (!cursor2.isAfterLast()) {
+                			List<NetProphetNetworkData> netInfoList = new ArrayList<NetProphetNetworkData>();
+                			do {
+                                NetProphetNetworkData netInfoObject = new NetProphetNetworkData(cursor2.getLong(0),
+                                        cursor2.getString(1),cursor2.getString(2),cursor2.getInt(3),cursor2.getInt(4),
+                                        cursor2.getInt(5),cursor2.getInt(6),cursor2.getInt(7),cursor2.getInt(8),cursor2.getInt(9));
+                				netInfoList.add(netInfoObject);
+                			} while (cursor2.moveToNext() && netInfoList.size() < 1000);
+                			//send  request;
+                			sendObjectsToRemoteDB(netInfoList);
+                		}
+                    }
+                	isPreparingRequest = false;
+                }
+                catch(Exception e){
+                	isPreparingRequest = false;
+                	isSynchronizing = false; //if an error occurs, we consider synchronizing failed.
+                	logger.severe("error in iterating db items:"+e);
+                	e.printStackTrace();
+                }
+
+            } catch (Exception e) {
+            	logger.severe("error in selecting all records:"+e);
+                e.printStackTrace();          
+            } finally {
+                //db.endTransaction();
+                db.close();
+            }
+        } finally {
+            db_lock.unlock();
+            isPreparingRequest = false;
+        }
     	//then drop the table and creates new table
     	//only when it's confirmed that the server has received the data.
     	return true;
@@ -206,7 +354,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 db.setTransactionSuccessful();
             } catch (Exception e) {
                 e.printStackTrace();
-                System.err.println("Failed to save request info!");
+                logger.severe("Failed to save request info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -316,7 +464,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    public long getRequestInfoCount()
+    @SuppressWarnings("finally")
+	public long getRequestInfoCount()
     {
         db_lock.lock();
         long count = 0;

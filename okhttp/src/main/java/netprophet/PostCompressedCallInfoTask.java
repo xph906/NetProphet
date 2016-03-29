@@ -20,13 +20,16 @@ public class PostCompressedCallInfoTask implements Runnable {
     private String plaintext;
     private OkHttpClient client;
     private MediaType jsonType;
+    private DatabaseHandler handler;
+    private int tag;
     
-    public PostCompressedCallInfoTask(String plaintext, String url){
+    public PostCompressedCallInfoTask(String plaintext, String url, DatabaseHandler handler){
     	this.serverURL = url;
-	
+    	this.handler = handler;
     	this.plaintext = plaintext;
     	this.client = new OkHttpClient();
     	this.jsonType = MediaType.parse("application/json; charset=utf-8");
+    	this.tag = plaintext.hashCode();
     }
     
 	@Override
@@ -41,19 +44,39 @@ public class PostCompressedCallInfoTask implements Runnable {
 				.build();
 		}
 		catch(Exception e){
-			logger.severe("error in generating gzip request: "+e);
+			logger.severe("COMPRESSEDREQDEBUG: error in generating gzip request: "+e);
 			e.printStackTrace();
+			handler.setSyncSuccessfulTag(false);
+			return ;
 		}
 		
-		try {
-			Response response = client.newCall(request).execute();
-			String str = response.body().string();
-			logger.log(Level.INFO, 
-					String.format("DEBUG PostCompressedCallInfoTask succeed: %s", str));
-		} catch (IOException e) {
-			logger.severe(
-					String.format("PostCompressedCallInfoTask %s failed: %s",this.serverURL, e.toString()));
+		int responseCode = -1;
+		for(int count=0; count < 3; count++){
+			try{
+				Response response = client.newCall(request).execute();
+				String str = response.body().string();
+				responseCode = response.code();
+				if(responseCode == 200)
+				{
+					logger.log(Level.INFO, 
+							String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask succeed: %s", str));
+					handler.deletePostTag(tag);
+					break;
+				}
+			}
+			catch(Exception e){
+				logger.severe(
+						String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask %s failed: %s (%d/3 times)",
+								this.serverURL, e.toString(), count+1));
+			}
 		}
+		if (responseCode != 200) {
+			logger.log(Level.INFO, 
+					String.format(
+						"COMPRESSEDREQDEBUG: PostCompressedCallInfoTask failed three times. Give up! code:%d", responseCode));	
+			handler.setSyncSuccessfulTag(false);
+		}
+	
 	}
 	
 	private RequestBody gzip(final RequestBody body) {

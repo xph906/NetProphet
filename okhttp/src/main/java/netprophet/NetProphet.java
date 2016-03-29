@@ -24,13 +24,21 @@ import okhttp3.Request;
 import okhttp3.OkHttpClient.Builder;
 import okhttp3.internal.InternalCache;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import static okhttp3.internal.Internal.logger;
 
 public class NetProphet {
+	private static NetProphet netProphet = null;
+	private static Context context = null;
 	/*
 	 * This function has been called in the beginning of application.
 	 */
 	public static void initializeNetProphet(Context context, boolean enableOptimization){
+		NetProphet.context = context;
 		OkHttpClient.initializeNetProphet(context, enableOptimization);
+		DatabaseHandler.getInstance(context);
+		NetUtility.getInstance(context, null);
+		NetProphetPropertyManager.getInstance();
 	}
 	/*
 	 * This function is for testing/debugging on desktop.
@@ -38,139 +46,73 @@ public class NetProphet {
 	public static void initializeNetProphetDesktop(boolean enableOptimization){
 		OkHttpClient.initializeNetProphetDesktop(enableOptimization);
 	}
-	
-	/* Usage:
-	 *  Request request = new Request.Builder().url(url).build();
-	 *  NetProphetClient client = new NetProphetClient();
-	 *  Builder b = client.newBuilder();
-	 *  client.setBuilder(b);
-	 *  Response response = client.newCall(request).execute();
-	 * */
-	public class NetProphetClient{
-		
-		private OkHttpClient client;
-		
-		public NetProphetClient(){
-			client = new OkHttpClient();
-		}
-		public Call newCall(Request request) {
-			return client.newCall(request);
-		}
-		public Builder newBuilder() {
-			return client.newBuilder();
-		}
-		public NetProphetClient setBuilder(Builder b){
-			client = b.build();
-			return this;
-		}
-		
-		/* Getter */
-		public Context getContext(){
-			return client.getContext();
-		}
-		
-		public int connectTimeoutMillis() {
-			/** Default connect timeout (in milliseconds). */
-			return client.connectTimeoutMillis();
-		}
 
-		public int readTimeoutMillis() {
-			/** Default read timeout (in milliseconds). */
-			return client.readTimeoutMillis();
-		}
-
-		public int writeTimeoutMillis() {
-			/** Default write timeout (in milliseconds). */
-			return client.writeTimeoutMillis();
-		}
-		
-		public Proxy proxy() {
-			return client.proxy();
-		}
-
-		public ProxySelector proxySelector() {
-			return client.proxySelector();
-		}
-
-		public CookieJar cookieJar() {
-			return client.cookieJar();
-		}
-
-		public Cache cache() {
-			return client.cache();
-		}
-
-		public Dns dns() {
-			return client.dns();
-		}
-
-		public SocketFactory socketFactory() {
-			return client.socketFactory();
-		}
-
-		public SSLSocketFactory sslSocketFactory() {
-			return client.sslSocketFactory();
-		}
-
-		public HostnameVerifier hostnameVerifier() {
-			return client.hostnameVerifier();
-		}
-
-		public CertificatePinner certificatePinner() {
-			return client.certificatePinner();
-		}
-
-		public Authenticator authenticator() {
-			return client.authenticator();
-		}
-
-		public Authenticator proxyAuthenticator() {
-			return client.proxyAuthenticator();
-		}
-
-		public ConnectionPool connectionPool() {
-			return client.connectionPool();
-		}
-
-		public boolean followSslRedirects() {
-			return client.followSslRedirects();
-		}
-
-		public boolean followRedirects() {
-			return client.followRedirects();
-		}
-
-		public boolean retryOnConnectionFailure() {
-			return client.retryOnConnectionFailure();
-		}
-
-		public Dispatcher dispatcher() {
-			return client.dispatcher();
-		}
-
-		public List<Protocol> protocols() {
-			return client.protocols();
-		}
-
-		public List<ConnectionSpec> connectionSpecs() {
-			return client.connectionSpecs();
-		}
-		
-		public List<Interceptor> interceptors() {
-		    return client.interceptors();
-		}
-		
-		public List<Interceptor> networkInterceptors() {
-		    return client.networkInterceptors();
-		  }
-		
-		/* Setter */
-		public void setContext(Context context) {
-			client.setContext(context);
-		}
-		
+	public static NetProphet getInstance(){
+		if(context == null)
+			return null;
+		if(netProphet == null)
+			netProphet = new NetProphet();
+		return netProphet;
 	}
 	
+	private DatabaseHandler dbHandler;
+	private NetUtility netUtility;
+	private NetProphetPropertyManager propertyManager;
+	private NetProphet(){
+		if(context == null){
+			logger.severe("failed to initialize NetProphet: context is null!");
+			return ;
+		}
+		dbHandler = DatabaseHandler.getInstance(context);
+		netUtility = NetUtility.getInstance(context, null);
+		netUtility.setmNetProphet(this);
+		propertyManager = NetProphetPropertyManager.getInstance();
+	}
 	
+	public void debugDBSynchronization(int count){
+		long reqCount = dbHandler.getRequestInfoCount();
+		if(reqCount >= count){
+			logger.info("DBDEBUG: start to do DB synchronization:"+reqCount);
+			dbHandler.synchronizeDatabase();
+		}
+		else{
+			logger.info("DBDEBUG: don't do synchronization:"+reqCount);
+		}
+	}
+	public String getDBInfo(){
+		long reqCount = dbHandler.getRequestInfoCount();
+		long netinfoCount = dbHandler.getNetInfoCount();
+		String syncInfo = dbHandler.getDBSyncData();
+		return String.format("DBInfo: reqRecordCount:%d  NetInfoRecordCount:%d\n SyncInfo:%s",
+				reqCount, netinfoCount, syncInfo);
+	}
+	
+	protected void networkingChanged(int type, String name){
+		if(type == ConnectivityManager.TYPE_WIFI){
+			logger.info("networking changed to WIFI");
+			//TODO: make sure the WIFI works properly, then do DB synchronization
+			long reqCount = dbHandler.getRequestInfoCount();
+			if(reqCount >= propertyManager.getDBSyncLimit()){
+				logger.info("DBDEBUG: start to do DB synchronization:"+reqCount);
+				dbHandler.synchronizeDatabase();
+			}
+			else{
+				logger.info("DBDEBUG: don't do synchronization:"+reqCount);
+			}
+		}
+		else if(type==ConnectivityManager.TYPE_MOBILE ||
+				type==ConnectivityManager.TYPE_MOBILE_DUN ||
+				type==ConnectivityManager.TYPE_MOBILE_HIPRI ||
+				type==ConnectivityManager.TYPE_MOBILE_MMS ||
+				type==ConnectivityManager.TYPE_MOBILE_SUPL ){
+			logger.info("networking changed to MOBILE");
+		}
+		else if(type == -1){ /*No connection */
+			
+		}
+		else{
+			logger.severe("error in networkingChanged: unknown networking type "+type);
+		}
+	}
 	
 }

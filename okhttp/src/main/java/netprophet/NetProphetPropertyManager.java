@@ -48,6 +48,7 @@ public class NetProphetPropertyManager {
 			DNSTestingHostPath = properties.getProperty("DNSTestingHostPath");
 			storeToRemoteServerEveryRequest =  
 					Boolean.valueOf(properties.getProperty("StoreToRemoteServerEveryRequest"));
+			DBSyncLimit = Integer.valueOf(properties.getProperty("DBSyncLimit"));
 			
 			dnsServerMap = new HashMap<String, DNSServer>();
 			try {
@@ -80,6 +81,10 @@ public class NetProphetPropertyManager {
 		}
 	};
 	
+	public int getDBSyncLimit() {
+		return DBSyncLimit;
+	}
+
 	private Properties properties;
 	private String serverHost;
 	private String serverPort;
@@ -88,6 +93,7 @@ public class NetProphetPropertyManager {
 	private String remotePostReportPath;
 	private String DNSTestingHostPath;
 	private Map<String, DNSServer> dnsServerMap;
+	private int DBSyncLimit;
 	
 	public Map<String, DNSServer> getDNSServerMap(){
 		return dnsServerMap;

@@ -56,6 +56,7 @@ public class NetUtility extends PhoneStateListener {
     private SignalStrength mSignalStrength;
     private LocalNetworkingState mWIFINetState;
     private LocalNetworkingState mCellNetState;
+    private NetProphet mNetProphet;
 
     private static NetUtility mNetUtility = null;
     public static NetUtility getInstance(Context cx, Handler handler){
@@ -79,6 +80,7 @@ public class NetUtility extends PhoneStateListener {
         this.startListening();
         this.mCellSignalStrength = 0;
         this.mWIFISignalStrength = 0;
+        this.mNetProphet = null;
         mTelManager =
                 (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
         mTelManager.listen(this, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
@@ -136,7 +138,8 @@ public class NetUtility extends PhoneStateListener {
                 postMessage(InternalConst.MSGType.NETINFO_MSG, msg_obj);
                 mWIFINetState.stopRepeatedRefresh();
                 mCellNetState.stopRepeatedRefresh();
-
+                if(mNetProphet != null)
+                	mNetProphet.networkingChanged(-1, "Network Disconnected");
                 return;
             }
 
@@ -167,15 +170,19 @@ public class NetUtility extends PhoneStateListener {
                     subType = mName;
                     mCellNetState.stopRepeatedRefresh();
                     mWIFINetState.startRepeatedRefresh();
+                    if(mNetProphet != null)
+                    	mNetProphet.networkingChanged(mNetworkInfo.getType(), mName);
                 } else if (isConnected) {
                     mName = subType;
                     mCellularType = mTelManager.getNetworkType();
                     mWIFINetState.stopRepeatedRefresh();
                     mCellNetState.startRepeatedRefresh();
+                    if(mNetProphet != null)
+                    	mNetProphet.networkingChanged(ConnectivityManager.TYPE_MOBILE, mName);
                 }
             }
             catch(Exception e){
-                System.err.println("Exception "+e);
+                System.err.println("error in  ConnectivityBroadcastReceiver:"+e);
                 e.printStackTrace();
             }
 
@@ -187,7 +194,15 @@ public class NetUtility extends PhoneStateListener {
         }
     };
 
-    @Override
+    public NetProphet getmNetProphet() {
+		return mNetProphet;
+	}
+
+	public void setmNetProphet(NetProphet mNetProphet) {
+		this.mNetProphet = mNetProphet;
+	}
+
+	@Override
     public void onSignalStrengthsChanged(SignalStrength signalStrength) {
         super.onSignalStrengthsChanged(signalStrength);
         mSignalStrength = signalStrength;
