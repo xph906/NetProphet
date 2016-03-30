@@ -50,31 +50,36 @@ public class PostCompressedCallInfoTask implements Runnable {
 			return ;
 		}
 		
-		int responseCode = -1;
-		for(int count=0; count < 3; count++){
-			try{
-				Response response = client.newCall(request).execute();
-				String str = response.body().string();
-				responseCode = response.code();
-				if(responseCode == 200)
-				{
-					logger.log(Level.INFO, 
-							String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask succeed: %s", str));
-					handler.deletePostTag(tag);
-					break;
+		try{
+			handler.addPostTag(tag);
+			int responseCode = -1;
+			for(int count=0; count < 3; count++){
+				try{
+					Response response = client.newCall(request).execute();
+					String str = response.body().string();
+					responseCode = response.code();
+					if(responseCode == 200)
+					{
+						logger.log(Level.INFO, 
+								String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask succeed: %s", str));		
+						break;
+					}
+				}
+				catch(Exception e){
+					logger.severe(
+							String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask %s failed: %s (%d/3 times)",
+									this.serverURL, e.toString(), count+1));
 				}
 			}
-			catch(Exception e){
-				logger.severe(
-						String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask %s failed: %s (%d/3 times)",
-								this.serverURL, e.toString(), count+1));
+			if (responseCode != 200) {
+				logger.log(Level.INFO, 
+						String.format(
+							"COMPRESSEDREQDEBUG: PostCompressedCallInfoTask failed three times. Give up! code:%d", responseCode));	
+				handler.setSyncSuccessfulTag(false);
 			}
 		}
-		if (responseCode != 200) {
-			logger.log(Level.INFO, 
-					String.format(
-						"COMPRESSEDREQDEBUG: PostCompressedCallInfoTask failed three times. Give up! code:%d", responseCode));	
-			handler.setSyncSuccessfulTag(false);
+		finally{
+			handler.deletePostTag(tag);
 		}
 	
 	}

@@ -307,8 +307,9 @@ public class DebugMain {
 		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
 		OkHttpClient.initializeNetProphetDesktop(false);
-	
+		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml");
 		
+		/*
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
@@ -338,6 +339,7 @@ public class DebugMain {
 		DebugMain.getStringRequest("https://www.owasp.org/index.php/Testing_for_CSS_Injection_(OTG-CLIENT-005)");
 		DebugMain.getStringRequest("https://en.wikipedia.org/wiki/Content_Security_Policy");
 		DebugMain.getStringRequest("https://nvisium.com/blog/2016/03/09/exploring-ssti-in-flask-jinja2/");
+		*/
 		/*
 		String addressCache = "addressCache";
 		printDNSCache(addressCache);
@@ -408,7 +410,7 @@ public class DebugMain {
 		*/
 
 		//DebugMain.getStringRequest("http://www.sina.com.cn/");
-		DebugMain.getStringRequest("http://www.douban.com");
+		/*DebugMain.getStringRequest("http://www.douban.com");
 		//DebugMain.getStringRequest("http://www.cnn.com");
 		//DebugMain.getStringRequest("https://www.facebook.com");
 		//DebugMain.getStringRequest("https://www.baidu.com"); 
@@ -419,7 +421,7 @@ public class DebugMain {
 		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/sleep-2000");
 		//DebugMain.getStringRequest("https://www.douban.com/note/330868686/");
 		DebugMain.getStringRequest("http://news.sina.com.cn/c/nd/2016-03-21/doc-ifxqnskh1078277.shtml");
-		/*
+		
 		// Testing response transmission delay.
 		logger.log(Level.INFO, "Testing: response transmission delay");
 		url = oreganURL + "get-mini-file";

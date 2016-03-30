@@ -141,7 +141,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 		Vector arr = new Vector();
 		arr.addAll(objList);
 		String objStr = gson.toJson(arr);
-		addPostTag(objStr.hashCode());
+		//addPostTag(objStr.hashCode());
 		taskManager.postTask(new PostCompressedCallInfoTask(objStr, propertyManager.getRemotePostReportURL(),this));
 		logger.info("DBDEBUG: Done sending "+objList.size()+" item to remote server");
     }
@@ -150,7 +150,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     	this.isSyncSuccessful = tag;
     }
     
-    private void addPostTag(int hashcode) {
+    protected void addPostTag(int hashcode) {
         tagSetLock.lock();
         postTags.add(hashcode);
         tagSetLock.unlock();
@@ -215,8 +215,10 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public boolean synchronizeDatabase(){
     	//change this part of codes, 
     	//each time, read at most 1000 records into memory and sent to server
-    	if(isSynchronizing == true)
+    	if(isSynchronizing == true){
+    		logger.severe("DBDEBUG: no synchronization because of isSynchronizing");
     		return false;
+    	}
     	db_lock.lock();
     		
         try {
