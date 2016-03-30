@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.internal.Internal.NetProphetLogger;
 
 public class PostCallInfoTask implements Runnable{
     private String serverURL;
@@ -44,8 +45,7 @@ public class PostCallInfoTask implements Runnable{
 			//logger.log(Level.INFO, 
 			//		String.format("DEBUG postCallInfoToServerTask succeed: %s", str));
 		} catch (IOException e) {
-			logger.log(Level.WARNING, 
-					String.format("postCallInfoToServerTask %s failed: %s",this.serverURL, e.toString()));
+			NetProphetLogger.logError("PostCallInfoTask.run", e.toString());
 		}
 	}
 	  

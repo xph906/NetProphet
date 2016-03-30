@@ -18,6 +18,7 @@ import android.telephony.gsm.GsmCellLocation;
 
 import java.util.logging.Level;
 
+import okhttp3.internal.Internal.NetProphetLogger;
 import static okhttp3.internal.Internal.logger;
 
 /*
@@ -381,22 +382,18 @@ public class NetUtility extends PhoneStateListener {
                 String[] parts = ssignal.split(" ");
                 int asu = Integer.parseInt(parts[8]);
                 dbm = asu * 2 - 113;
-                logger.info("Prophet:phoneInfo " + "LTE:" + dbm);
             } else if (mCellularType == TelephonyManager.NETWORK_TYPE_CDMA
                     || mCellularType == TelephonyManager.NETWORK_TYPE_1xRTT ||
                     mCellularType == TelephonyManager.NETWORK_TYPE_EHRPD ) {
                 dbm = mSignalStrength.getCdmaDbm();
-                logger.info("Prophet:phoneInfo " + "CDMA:" + dbm);
             } else if (mCellularType == TelephonyManager.NETWORK_TYPE_EVDO_0
                     || mCellularType == TelephonyManager.NETWORK_TYPE_EVDO_A
                     || mCellularType == TelephonyManager.NETWORK_TYPE_EVDO_B) {
 
                 dbm = mSignalStrength.getEvdoDbm();
-                logger.info("Prophet:phoneInfo " + "EVDO:" + dbm);
             } else if (mSignalStrength.isGsm()) {
                 int asu = mSignalStrength.getGsmSignalStrength();
                 dbm = asu * 2 - 113;
-                logger.info("Prophet:phoneInfo " + "GSM:" + dbm);
             } else {
                 if(mGeneralizedCellularType == CellularType.GSM){
                     int asu = mSignalStrength.getGsmSignalStrength();
@@ -404,12 +401,10 @@ public class NetUtility extends PhoneStateListener {
                 }
                 else
                     dbm = mSignalStrength.getCdmaDbm();
-                logger.info("Prophet:unknown cellular type "+mCellularType + "GSM:" + dbm);
             }
         }
         catch(Exception e){
-            logger.severe("error in getting cell signal strength");
-
+        	NetProphetLogger.logError("getCellSignalStrength", e.toString());
         }
 
         WifiManager wifiManager = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
@@ -434,7 +429,7 @@ public class NetUtility extends PhoneStateListener {
         msg.what = msgType;
         msg.obj = content;
         handler.sendMessage(msg);
-        logger.log(Level.INFO, "Sent NetworkingInfo msg: "+content);
+        NetProphetLogger.logDebugging("postMessage", content);
     }
 
 }

@@ -3,6 +3,7 @@ package netprophet;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
@@ -22,6 +23,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.OkHttpClient.Builder;
+import okhttp3.internal.Internal.NetProphetLogger;
 import okhttp3.internal.InternalCache;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -39,6 +41,7 @@ public class NetProphet {
 		DatabaseHandler.getInstance(context);
 		NetUtility.getInstance(context, null);
 		NetProphetPropertyManager.getInstance();
+		logger.setLevel(Level.ALL);
 	}
 	/*
 	 * This function is for testing/debugging on desktop.
@@ -60,7 +63,7 @@ public class NetProphet {
 	private NetProphetPropertyManager propertyManager;
 	private NetProphet(){
 		if(context == null){
-			logger.severe("failed to initialize NetProphet: context is null!");
+			NetProphetLogger.logError("NetProphet", "failed to initialize NetProphet: context is null.");
 			return ;
 		}
 		dbHandler = DatabaseHandler.getInstance(context);
@@ -72,11 +75,13 @@ public class NetProphet {
 	public void debugDBSynchronization(int count){
 		long reqCount = dbHandler.getRequestInfoCount();
 		if(reqCount >= count){
-			logger.info("DBDEBUG: start to do DB synchronization:"+reqCount);
+			NetProphetLogger.logDebugging("NetProphet", 
+					"start to synchronize DB :"+reqCount+" records");
 			dbHandler.synchronizeDatabase();
 		}
 		else{
-			logger.info("DBDEBUG: don't do synchronization:"+reqCount);
+			NetProphetLogger.logDebugging("NetProphet", 
+					"too early to do DB synchronization because of "+reqCount+" records");
 		}
 	}
 	public String getDBInfo(){
@@ -89,15 +94,17 @@ public class NetProphet {
 	
 	protected void networkingChanged(int type, String name){
 		if(type == ConnectivityManager.TYPE_WIFI){
-			logger.info("networking changed to WIFI");
+			NetProphetLogger.logDebugging("networkingChanged", "networking changed to WIFI");
 			//TODO: make sure the WIFI works properly, then do DB synchronization
 			long reqCount = dbHandler.getRequestInfoCount();
 			if(reqCount >= propertyManager.getDBSyncLimit()){
-				logger.info("DBDEBUG: start to do DB synchronization:"+reqCount);
+				NetProphetLogger.logDebugging("networkingChanged",
+						"start to synchronize DB :"+reqCount+" records");
 				dbHandler.synchronizeDatabase();
 			}
 			else{
-				logger.info("DBDEBUG: don't do synchronization:"+reqCount);
+				NetProphetLogger.logDebugging("networkingChanged",
+						"too early to do DB synchronization because of "+reqCount+" records");
 			}
 		}
 		else if(type==ConnectivityManager.TYPE_MOBILE ||
@@ -105,13 +112,13 @@ public class NetProphet {
 				type==ConnectivityManager.TYPE_MOBILE_HIPRI ||
 				type==ConnectivityManager.TYPE_MOBILE_MMS ||
 				type==ConnectivityManager.TYPE_MOBILE_SUPL ){
-			logger.info("networking changed to MOBILE");
+			NetProphetLogger.logDebugging("networkingChanged", "networking changed to MOBILE");
 		}
 		else if(type == -1){ /*No connection */
-			
+			NetProphetLogger.logDebugging("networkingChanged", "no connection.");
 		}
 		else{
-			logger.severe("error in networkingChanged: unknown networking type "+type);
+			NetProphetLogger.logError("networkingChanged", "unknown networking type: "+type);
 		}
 	}
 	

@@ -100,7 +100,7 @@ public abstract class ResponseBody implements Closeable {
 		  userRequest.getCall().storeCallStatInfo(propertyManager.canStoreToRemoteServerEveryRequest());
     }
     else
-      logger.log(Level.SEVERE, "userRequest has not been set to ResponseBody");
+      logger.log(Level.SEVERE, "NETPROPHET userRequest has not been set to ResponseBody");
   }
 	
   //this function has to run on Android

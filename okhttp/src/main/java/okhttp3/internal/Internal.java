@@ -45,6 +45,25 @@ public abstract class Internal {
   public static final Logger logger = Logger.getLogger(OkHttpClient.class.getName());
   
   /* NetProphet */
+  public static class NetProphetLogger {
+	  final static String ERR_MSG = "[NETPROPHET] ERROR @ %s : %s";
+	  final static String WARNING_MSG = "[NETPROPHET] WARNING @ %s : %s";
+	  final static String DEBUG_MSG = "[NETPROPHET] DEBUG @ %s : %s";
+	  final static String INFO_MSG = "[NETPROPHET] INFO @ %s : %s";
+	  public static void logError(String funName, String errMsg){
+		  logger.severe(String.format(ERR_MSG, funName, errMsg));
+	  }
+	  public static void logWarning(String funName, String errMsg){
+		  logger.warning(String.format(WARNING_MSG, funName, errMsg));
+	  }
+	  public static void logDebugging(String funName, String errMsg){
+		  logger.fine(String.format(DEBUG_MSG, funName, errMsg));
+	  }
+	  public static void logInfo(String funName, String errMsg){
+		  logger.info(String.format(INFO_MSG, funName, errMsg));
+	  }
+  }
+  
   public static class BriefFormatter extends Formatter 
   {   
       public BriefFormatter() { super(); }

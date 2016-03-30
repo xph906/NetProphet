@@ -207,26 +207,6 @@ final class RealCall implements Call {
 						WIFISigLevelANP, CellSigLevelANP, MCCANP, MNCANP, LACANP, 
 						0, 0);
 
-		//this is only for debugging.
-		if(storeToRemoteServer && !isCallStatInfoSavedRemotely){
-			logger.log(Level.INFO, "DEBUG: prepare store to remote Server "+objList.get(0).getUrl());
-			Iterator<NetProphetHTTPRequestInfoObject> objIter =
-					objList.iterator();
-			Vector arr = new Vector();
-			while(objIter.hasNext()){
-				arr.add(objIter.next());
-			}
-			arr.add(networkData);	
-			String objStr = gson.toJson(arr);
-			//System.err.println(objStr);
-			asyncTaskManager.postTask(
-					new PostCallInfoTask(objStr, propertyManager.getRemotePostReportURL()));
-			isCallStatInfoSavedRemotely = true;		
-			//DatabaseHandler.sendObjectsToRemoteDB(objList);
-			//isCallStatInfoSavedRemotely = true;
-		}
-		
-		//@GUANGYAO
 		if(!isCallStatInfoSavedLocally && context!=null){
 			try{
 				DatabaseHandler dbHandler = DatabaseHandler.getInstance(context);
@@ -625,10 +605,7 @@ final class RealCall implements Call {
 				HttpEngine retryEngine = engine.recover(
 						e.getLastConnectException(), null);
 
-				/* NetProphet */
-				//request.getRequestTimingANP().setReqStartTimeANP(1); //REMOVE THIS LINE
-				//logger.severe("RETRYDEBUG:"+request.url()+" "+e);
-				
+				/* NetProphet */	
 				timingsANP.add(request.getRequestTimingANP());
 				infosANP.add(engine.getRequest().getResponseInfoANP());
 				/* End NetProphet */

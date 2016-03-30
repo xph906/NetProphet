@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
 
+import okhttp3.internal.Internal.NetProphetLogger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -38,11 +40,12 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private boolean isSynchronizing;
     private boolean isSyncSuccessful; //check if all requests successful.
     private boolean isPreparingRequest; //ensure to dump table only when all requests have been prepared.
+    private HashSet<Integer> postTags;
+    private long syncStartingTime;
+   
+    private NetProphetPropertyManager propertyManager;
     
     private static DatabaseHandler instance = null;
-    
-    private HashSet<Integer> postTags;
-
     public static DatabaseHandler getInstance(Context context) {
         if(instance == null) {
             instance = new DatabaseHandler(context);
@@ -58,22 +61,26 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         isSynchronizing = false;
         isSyncSuccessful = true;
         isPreparingRequest = false;
+        syncStartingTime = 0;
+        propertyManager = NetProphetPropertyManager.getInstance();
         try{	
 	        if(!isTableExists(NetProphetData.RequestColumns.TABLE_NAME)){
-	        	System.err.println(NetProphetData.RequestColumns.TABLE_NAME + " table not exists");
+	        	NetProphetLogger.logDebugging("DatabaseHandler", 
+	        			NetProphetData.RequestColumns.TABLE_NAME + " table not exists");
 	        	SQLiteDatabase db = this.getWritableDatabase();
 	        	db.execSQL(createTable(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.COLUMNS));
 	        	db.close();
 	        }
 	        if(!isTableExists(NetProphetData.NetInfoColumns.TABLE_NAME)){
-	        	System.err.println(NetProphetData.NetInfoColumns.TABLE_NAME + " table not exists");
+	        	NetProphetLogger.logDebugging("DatabaseHandler", 
+	        			NetProphetData.NetInfoColumns.TABLE_NAME + " table not exists");
 	        	SQLiteDatabase db = this.getWritableDatabase();
 	        	db.execSQL(createTable(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.COLUMNS));
 	        	db.close();
 	        }
 	    }
         catch(Exception e){
-        	logger.severe("NetProphet DATABASE ERROR:"+e);
+        	NetProphetLogger.logError("DatabaseHandler", e.toString());
         	e.printStackTrace();
         }
     }
@@ -102,11 +109,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         	}
         	catch (Exception e) {
         	    /* fail */
-        	   System.err.println( tbName+" doesn't exist :"+e);
+        		NetProphetLogger.logError("isTableExists 1", e.toString());
+        		e.printStackTrace();
         	}
     	}
     	catch(Exception e){
-    		System.err.println("DATABASE: "+e);
+    		NetProphetLogger.logError("isTableExists 2", e.toString());
+    		e.printStackTrace();
     	}
     	
 
@@ -131,7 +140,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    //TODO: change this method to private after testing
     private void sendObjectsToRemoteDB(List objList){
     	if (objList.size() <= 0)
     		return ;
@@ -143,7 +151,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 		String objStr = gson.toJson(arr);
 		//addPostTag(objStr.hashCode());
 		taskManager.postTask(new PostCompressedCallInfoTask(objStr, propertyManager.getRemotePostReportURL(),this));
-		logger.info("DBDEBUG: Done sending "+objList.size()+" item to remote server");
+		NetProphetLogger.logDebugging("sendObjectsToRemoteDB",
+				"done sending "+objList.size()+" records to remote server");
     }
     
     public void setSyncSuccessfulTag(boolean tag){
@@ -164,23 +173,24 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         tagSetLock.unlock();
         if(isPostTagSetEmpty){
         	if(!isPreparingRequest && isSyncSuccessful){
-        		clearDatabase();    
+        		clearDatabase(); 
+        		NetProphetLogger.logWarning("deletePostTag", "done synchronizing database and clearing tables");
         	}
         	else{
-        		logger.warning("DBDEBUG: cannot clear database because isPreparingRequest:"+
-        				isPreparingRequest+" and/or isSyncSuccessful:"+isSyncSuccessful);
+        		NetProphetLogger.logWarning("deletePostTag", 
+        				"done synchronizing database but cannot clear database because "+getDBSyncData());
         	}
-        	if(!isPreparingRequest)
+        	if(!isPreparingRequest){
         		isSynchronizing = false;
-        	logger.info("DBDEBUG: done synchronizing database and clearing tables");
+        		syncStartingTime = 0;
+        	}
         }
         else{
-        	logger.info("DBDEBUG: done synchronizing a part of DB. "
-        			+postTags.size()+" tasks remaining.");
+        	NetProphetLogger.logWarning("deletePostTag", 
+    				"done synchronizing a part of DB, "+postTags.size()+" tasks remaining.");
         }
     }
     
-    //TODO: drop the  table.
     public void clearDatabase(){
     	db_lock.lock();
     	try{
@@ -191,7 +201,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             db.execSQL(createTable(NetProphetData.RequestColumns.TABLE_NAME, NetProphetData.RequestColumns.COLUMNS));
             db.execSQL(createTable(NetProphetData.NetInfoColumns.TABLE_NAME, NetProphetData.NetInfoColumns.COLUMNS));
     	}catch(Exception e){
-    		logger.severe("Clear Database failed."+e);
+    		NetProphetLogger.logError("clearDatabase", e.toString());
             e.printStackTrace();
     	}finally{
     		db_lock.unlock();
@@ -201,22 +211,25 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void initEverything(){
     	clearDatabase();
     	isSynchronizing = false;
+    	syncStartingTime = 0;
     	isSyncSuccessful = true;
     	isPreparingRequest = false;
     	postTags.clear();
     }
+    
     public String getDBSyncData(){
     	return String.format("isSynchronizing:%b  isSyncSuccessful:%b  isPreparingReq:%b  sizeofPostTags:%d", 
     			isSynchronizing, isSyncSuccessful, isPreparingRequest, postTags.size());
     }
 
-    //TODO: send DB data to remote server.
     //This method will always be executed in another thread
-    public boolean synchronizeDatabase(){
+    protected boolean synchronizeDatabase(){
     	//change this part of codes, 
     	//each time, read at most 1000 records into memory and sent to server
     	if(isSynchronizing == true){
-    		logger.severe("DBDEBUG: no synchronization because of isSynchronizing");
+    		long t = (System.currentTimeMillis() - syncStartingTime)/1000;
+    		NetProphetLogger.logError("synchronizeDatabase", 
+    				"the database is synchronizing now and has lasted for "+t+" seconds");
     		return false;
     	}
     	db_lock.lock();
@@ -231,10 +244,12 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 Cursor cursor = db.rawQuery(selectQuery, null);
                 Cursor cursor2 = db.rawQuery(selectQuery2, null);
                 isSynchronizing = true; 
+                syncStartingTime = System.currentTimeMillis();
                 //db.setTransactionSuccessful();
                 try{
                 	isSyncSuccessful = true;
                 	isPreparingRequest = true;
+                	int packetSize = propertyManager.getDBSyncPacketRecordSize();
                 	if(cursor.moveToFirst()) {
                 		while (!cursor.isAfterLast()) {
                 			List<NetProphetHTTPRequestInfoObject> requestList = new ArrayList<NetProphetHTTPRequestInfoObject>();
@@ -248,7 +263,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                                     cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
                                     cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
                 				requestList.add(infoObject);
-                			} while (cursor.moveToNext() && requestList.size() < 1000);
+                			} while (cursor.moveToNext() && requestList.size() < packetSize);
                 			//send  request;
                 			sendObjectsToRemoteDB(requestList);
                 		}
@@ -261,22 +276,24 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                                         cursor2.getString(1),cursor2.getString(2),cursor2.getInt(3),cursor2.getInt(4),
                                         cursor2.getInt(5),cursor2.getInt(6),cursor2.getInt(7),cursor2.getInt(8),cursor2.getInt(9));
                 				netInfoList.add(netInfoObject);
-                			} while (cursor2.moveToNext() && netInfoList.size() < 1000);
+                			} while (cursor2.moveToNext() && netInfoList.size() < packetSize);
                 			//send  request;
                 			sendObjectsToRemoteDB(netInfoList);
                 		}
                     }
                 	isPreparingRequest = false;
+                	deletePostTag(-1);
                 }
                 catch(Exception e){
                 	isPreparingRequest = false;
                 	isSynchronizing = false; //if an error occurs, we consider synchronizing failed.
-                	logger.severe("error in iterating db items:"+e);
+                	deletePostTag(-1);
+                	NetProphetLogger.logError("synchronizeDatabase",e.toString());
                 	e.printStackTrace();
                 }
 
             } catch (Exception e) {
-            	logger.severe("error in selecting all records:"+e);
+            	NetProphetLogger.logError("synchronizeDatabase",e.toString());
                 e.printStackTrace();          
             } finally {
                 //db.endTransaction();
@@ -355,8 +372,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
                 db.setTransactionSuccessful();
             } catch (Exception e) {
+            	NetProphetLogger.logError("addRequestInfo",e.toString());
                 e.printStackTrace();
-                logger.severe("Failed to save request info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -434,8 +451,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
                 db.setTransactionSuccessful();
             } catch (Exception e) {
+            	NetProphetLogger.logError("addRequestInfos",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to save request info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -455,8 +472,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                         new String[]{String.valueOf(req_id)});
                 db.setTransactionSuccessful();
             } catch (Exception e) {
+            	NetProphetLogger.logError("deleteRequestInfo",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to delete request info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -483,8 +500,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 }
             }catch (Exception e)
             {
+            	NetProphetLogger.logError("getRequestInfoCount",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to get request count!");
             }finally {
                 db.endTransaction();
                 db.close();
@@ -521,8 +538,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     } while (cursor.moveToNext());
                 }
             } catch (Exception e) {
+            	NetProphetLogger.logError("getAllRequestInfo",e.toString());
                 e.printStackTrace();
-                logger.severe("Failed to get request info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -560,8 +577,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     db.setTransactionSuccessful();
                 }
             } catch (Exception e) {
+            	NetProphetLogger.logError("getAllRequestInfoAndDelete",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to get request info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -625,8 +642,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
                 db.setTransactionSuccessful();
             } catch (Exception e) {
+            	NetProphetLogger.logError("addNetInfo",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to save network info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -658,15 +675,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     values.put(NetProphetData.NetInfoColumns.LAC,infoObject.getLAC());
                     values.put(NetProphetData.NetInfoColumns.FIRST_MILE_LATENCY,infoObject.getFirstMileLatency());
                     values.put(NetProphetData.NetInfoColumns.FIRST_MILE_PACKET_LOSS,infoObject.getFirstMilePacketLossRate());
-
-
                     db.insert(NetProphetData.NetInfoColumns.TABLE_NAME, null, values);
                 }
 
                 db.setTransactionSuccessful();
             } catch (Exception e) {
+            	NetProphetLogger.logError("addNetInfos",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to save network info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -686,8 +701,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                         new String[]{String.valueOf(req_id)});
                 db.setTransactionSuccessful();
             } catch (Exception e) {
-                e.printStackTrace();
-                System.err.println("Failed to delete network info!");
+            	NetProphetLogger.logError("deleteNetInfo",e.toString());
+                e.printStackTrace();   
             } finally {
                 db.endTransaction();
                 db.close();
@@ -713,8 +728,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 }
             }catch (Exception e)
             {
+            	NetProphetLogger.logError("getNetInfoCount",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to get network count!");
             }finally {
                 db.endTransaction();
                 db.close();
@@ -745,8 +760,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     } while (cursor.moveToNext());
                 }
             } catch (Exception e) {
+            	NetProphetLogger.logError("getAllNetInfo",e.toString());
                 e.printStackTrace();
-                System.err.println("Failed to get network info!");
             } finally {
                 db.endTransaction();
                 db.close();
@@ -756,6 +771,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             return requestList;
         }
     }
+    
     private List<NetProphetNetworkData> getAllNetInfoAndDelete() {
         db_lock.lock();
         List<NetProphetNetworkData> requestList = new ArrayList<NetProphetNetworkData>();
@@ -777,8 +793,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     db.setTransactionSuccessful();
                 }
             } catch (Exception e) {
+            	NetProphetLogger.logError("getAllNetInfoAndDelete",e.toString());
                 e.printStackTrace();
-                logger.severe("Failed to get network info!");
             } finally {
                 db.endTransaction();
                 db.close();

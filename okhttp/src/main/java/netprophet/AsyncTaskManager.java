@@ -10,8 +10,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.internal.Internal.NetProphetLogger;
 
 import com.google.gson.Gson;
+
 import static okhttp3.internal.Internal.logger;
 
 //TODO: an asynchronous manager should be running to handle these tasks
@@ -40,7 +42,7 @@ public class AsyncTaskManager {
 	try {
 		executor.awaitTermination(timeout, TimeUnit.MILLISECONDS);
 	} catch (InterruptedException e) {
-		// TODO deal with the try-catch
+		NetProphetLogger.logError("waitForAllTask", e.toString());
 		e.printStackTrace();
 	}
   }

@@ -10,6 +10,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.internal.Internal.NetProphetLogger;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.GzipSink;
@@ -44,7 +45,7 @@ public class PostCompressedCallInfoTask implements Runnable {
 				.build();
 		}
 		catch(Exception e){
-			logger.severe("COMPRESSEDREQDEBUG: error in generating gzip request: "+e);
+			NetProphetLogger.logError("PostCompressedCallInfoTask.run1", e.toString());
 			e.printStackTrace();
 			handler.setSyncSuccessfulTag(false);
 			return ;
@@ -60,28 +61,26 @@ public class PostCompressedCallInfoTask implements Runnable {
 					responseCode = response.code();
 					if(responseCode == 200)
 					{
-						logger.log(Level.INFO, 
-								String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask succeed: %s", str));		
+						NetProphetLogger.logDebugging("PostCompressedCallInfoTask.run", 
+								"PostCompressedCallInfoTask succeed: "+str);	
 						break;
 					}
 				}
 				catch(Exception e){
-					logger.severe(
-							String.format("COMPRESSEDREQDEBUG: PostCompressedCallInfoTask %s failed: %s (%d/3 times)",
+					NetProphetLogger.logError("PostCompressedCallInfoTask.run2",
+							String.format("PostCompressedCallInfoTask %s failed: %s (%d/3 times)",
 									this.serverURL, e.toString(), count+1));
 				}
 			}
 			if (responseCode != 200) {
-				logger.log(Level.INFO, 
-						String.format(
-							"COMPRESSEDREQDEBUG: PostCompressedCallInfoTask failed three times. Give up! code:%d", responseCode));	
+				NetProphetLogger.logError("PostCompressedCallInfoTask.run2",
+						"PostCompressedCallInfoTask failed three times. Give up!");
 				handler.setSyncSuccessfulTag(false);
 			}
 		}
 		finally{
 			handler.deletePostTag(tag);
 		}
-	
 	}
 	
 	private RequestBody gzip(final RequestBody body) {

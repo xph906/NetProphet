@@ -49,7 +49,7 @@ public class NetProphetPropertyManager {
 			storeToRemoteServerEveryRequest =  
 					Boolean.valueOf(properties.getProperty("StoreToRemoteServerEveryRequest"));
 			DBSyncLimit = Integer.valueOf(properties.getProperty("DBSyncLimit"));
-			
+			DBSyncPacketRecordSize = Integer.valueOf(properties.getProperty("DBSyncPacketRecordSize"));
 			dnsServerMap = new HashMap<String, DNSServer>();
 			try {
 				BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -69,7 +69,7 @@ public class NetProphetPropertyManager {
 			       String ip = tmp[1].trim();
 			       String loc = tmp[2].trim();
 			       dnsServerMap.put(name, new DNSServer(name, ip, loc));    
-			       logger.severe(dnsServerMap.get(name).toString());
+			       //logger.severe(dnsServerMap.get(name).toString());
 			    }
 			}
 			catch(IOException ee){
@@ -81,6 +81,14 @@ public class NetProphetPropertyManager {
 		}
 	};
 	
+	public int getDBSyncPacketRecordSize() {
+		return DBSyncPacketRecordSize;
+	}
+
+	public void setDBSyncPacketRecordSize(int dBSyncPacketRecordSize) {
+		DBSyncPacketRecordSize = dBSyncPacketRecordSize;
+	}
+
 	public int getDBSyncLimit() {
 		return DBSyncLimit;
 	}
@@ -94,6 +102,7 @@ public class NetProphetPropertyManager {
 	private String DNSTestingHostPath;
 	private Map<String, DNSServer> dnsServerMap;
 	private int DBSyncLimit;
+	private int DBSyncPacketRecordSize;
 	
 	public Map<String, DNSServer> getDNSServerMap(){
 		return dnsServerMap;
