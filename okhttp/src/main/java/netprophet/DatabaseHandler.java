@@ -57,7 +57,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         send_lock = new ReentrantLock();
         tagSetLock = new ReentrantLock();
-        postTags = new HashSet<>();
+        postTags = null;
         isSynchronizing = false;
         isSyncSuccessful = true;
         isPreparingRequest = false;
@@ -161,33 +161,55 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     
     protected void addPostTag(int hashcode) {
         tagSetLock.lock();
+        if(postTags == null)
+        	postTags = new HashSet<Integer>();
         postTags.add(hashcode);
         tagSetLock.unlock();
 	}
 
+    //BUG: if there are ten requests, deletePostTag(-1) is called after the first five
+    //     finish calling deletePostTag(hashcode), while the rest five haven't called
+    //     addPostTag(hashcode), the database will be cleared without confirming that 
+    //     the rest five's records have been received.
+    //     For now, we will let it go...
     protected void deletePostTag(int hashcode){
-        boolean isPostTagSetEmpty = false;    
+        boolean isPostTagSetEmpty = false; 
+        int size = 0;
         tagSetLock.lock();
+        if(postTags == null){
+        	tagSetLock.unlock();
+        	return ;
+        }
         postTags.remove(hashcode);
+        size = postTags.size();
         isPostTagSetEmpty = postTags.isEmpty();
         tagSetLock.unlock();
+        
         if(isPostTagSetEmpty){
         	if(!isPreparingRequest && isSyncSuccessful){
         		clearDatabase(); 
-        		NetProphetLogger.logWarning("deletePostTag", "done synchronizing database and clearing tables");
+        		NetProphetLogger.logDebugging("deletePostTag", 
+        				"done synchronizing database and clearing tables: ");
+        	}
+        	else if(!isPreparingRequest){	
+        		NetProphetLogger.logWarning("deletePostTag", 
+        				"done synchronizing database but cannot clear database because some sync requests failed");
         	}
         	else{
         		NetProphetLogger.logWarning("deletePostTag", 
-        				"done synchronizing database but cannot clear database because "+getDBSyncData());
+        				"done synchronizing database but cannot clear database because not all sync requests are prepared");
         	}
         	if(!isPreparingRequest){
         		isSynchronizing = false;
         		syncStartingTime = 0;
+        		tagSetLock.lock();
+        		postTags = null;
+        		tagSetLock.unlock();
         	}
         }
         else{
         	NetProphetLogger.logWarning("deletePostTag", 
-    				"done synchronizing a part of DB, "+postTags.size()+" tasks remaining.");
+    				"done synchronizing a part of DB, "+size+" tasks remaining.");
         }
     }
     
@@ -214,12 +236,20 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     	syncStartingTime = 0;
     	isSyncSuccessful = true;
     	isPreparingRequest = false;
-    	postTags.clear();
+    	tagSetLock.lock();
+    	postTags = null;
+    	tagSetLock.unlock();
     }
     
+    //TODO: this function can be removed in release version
     public String getDBSyncData(){
+    	tagSetLock.lock();
+    	int size = 0;
+    	if(postTags != null)
+    		size = postTags.size();
+    	tagSetLock.unlock();
     	return String.format("isSynchronizing:%b  isSyncSuccessful:%b  isPreparingReq:%b  sizeofPostTags:%d", 
-    			isSynchronizing, isSyncSuccessful, isPreparingRequest, postTags.size());
+    			isSynchronizing, isSyncSuccessful, isPreparingRequest, size);
     }
 
     //This method will always be executed in another thread
@@ -282,7 +312,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 		}
                     }
                 	isPreparingRequest = false;
-                	deletePostTag(-1);
+                	// prevent all sync tasks finish before isPreparingRequest setting to be true; 
+                	deletePostTag(-1); 
                 }
                 catch(Exception e){
                 	isPreparingRequest = false;

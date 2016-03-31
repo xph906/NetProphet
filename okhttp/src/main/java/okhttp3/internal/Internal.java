@@ -57,7 +57,7 @@ public abstract class Internal {
 		  logger.warning(String.format(WARNING_MSG, funName, errMsg));
 	  }
 	  public static void logDebugging(String funName, String errMsg){
-		  logger.fine(String.format(DEBUG_MSG, funName, errMsg));
+		  logger.info(String.format(DEBUG_MSG, funName, errMsg));
 	  }
 	  public static void logInfo(String funName, String errMsg){
 		  logger.info(String.format(INFO_MSG, funName, errMsg));

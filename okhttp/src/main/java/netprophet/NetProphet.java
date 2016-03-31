@@ -57,6 +57,9 @@ public class NetProphet {
 			netProphet = new NetProphet();
 		return netProphet;
 	}
+	public static void setLoggerLevel(Level level){
+		logger.setLevel(level);
+	}
 	
 	private DatabaseHandler dbHandler;
 	private NetUtility netUtility;
