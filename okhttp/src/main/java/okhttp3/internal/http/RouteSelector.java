@@ -23,8 +23,11 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import netprophet.NetProphetDns;
 import okhttp3.Address;
 import okhttp3.HttpUrl;
 import okhttp3.Route;
@@ -52,11 +55,25 @@ public final class RouteSelector {
 
   /* State for negotiating failed routes */
   private final List<Route> postponedRoutes = new ArrayList<>();
+  
+  /* NetProphet */
+  private boolean useCache;
+  public boolean isUseCache() {
+    return useCache;
+  }
+  public void setUseCache(boolean useCache) {
+    this.useCache = useCache;
+  }
+  /* End NetProphet*/
 
-  public RouteSelector(Address address, RouteDatabase routeDatabase) {
+  
+
+public RouteSelector(Address address, RouteDatabase routeDatabase) {
     this.address = address;
     this.routeDatabase = routeDatabase;
-
+    /*NetProphet*/
+    this.useCache = false;
+    /*End NetProphet*/
     resetNextProxy(address.url(), address.proxy());
   }
 
@@ -70,6 +87,9 @@ public final class RouteSelector {
   }
 
   public Route next() throws IOException {
+    /*NetProphet*/
+	useCache = false;
+	/*End NetProphet*/
     // Compute the next route to attempt.
     if (!hasNextInetSocketAddress()) {
       if (!hasNextProxy()) {
@@ -171,12 +191,33 @@ public final class RouteSelector {
     } else {
       // Try each address for best behavior in mixed IPv4/IPv6 environments.
     	/*NetProphet*/
-    	/*NetProphet*/
-      List<InetAddress> addresses = address.dns().lookup(socketHost);
-      for (int i = 0, size = addresses.size(); i < size; i++) {
-        InetAddress inetAddress = addresses.get(i);
-        inetSocketAddresses.add(new InetSocketAddress(inetAddress, socketPort));
-      }
+    	//TODO: this is only for default DNS engine.
+    	/* NetProphet */
+    	StringBuilder sb = new StringBuilder();
+    	List<InetAddress> cachedDNS = new LinkedList<InetAddress>();
+    	if(NetProphetDns.searchSystemDNSCache(socketHost, cachedDNS, sb) &&
+    		(cachedDNS.size()>0) ){	
+			useCache = true;
+			for (int i = 0, size = cachedDNS.size(); i < size; i++) {
+		      InetAddress inetAddress = cachedDNS.get(i);
+		      inetSocketAddresses.add(new InetSocketAddress(inetAddress, socketPort));
+			}		
+    	}
+    	else{
+    		List<InetAddress> addresses = address.dns().lookup(socketHost);
+    	      for (int i = 0, size = addresses.size(); i < size; i++) {
+    	        InetAddress inetAddress = addresses.get(i);
+    	        inetSocketAddresses.add(new InetSocketAddress(inetAddress, socketPort));
+    	      }
+    	}
+    	/* End NetProphet*/
+	      /*
+	       List<InetAddress> addresses = address.dns().lookup(socketHost);
+	      for (int i = 0, size = addresses.size(); i < size; i++) {
+	        InetAddress inetAddress = addresses.get(i);
+	        inetSocketAddresses.add(new InetSocketAddress(inetAddress, socketPort));
+	      }
+	      */
     }
 
     nextInetSocketAddressIndex = 0;

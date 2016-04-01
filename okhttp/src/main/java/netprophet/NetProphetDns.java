@@ -308,7 +308,7 @@ public class NetProphetDns implements Dns {
     /*
     * Search the System Cache.
     */
-    public boolean searchSystemDNSCache(String hostname,
+    static public boolean searchSystemDNSCache(String hostname,
                                         List<InetAddress> result, StringBuilder errorMsg) {
         try {
             String cacheName = "addressCache";

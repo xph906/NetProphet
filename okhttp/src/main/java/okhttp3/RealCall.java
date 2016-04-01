@@ -176,7 +176,7 @@ final class RealCall implements Call {
 			
 			// TODO: cache needs more testing
 			boolean useConnCache = timingObj.useConnCache();
-			boolean useDNSCache = (dnsDelay<=5) ? true : false;
+			boolean useDNSCache =  timingObj.useDNSCache();
 			boolean useRespCache = timingObj.useRespCache();
 			int reqSize = timingObj.getReqSizeANP();
 			

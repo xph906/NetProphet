@@ -211,6 +211,7 @@ public final class StreamAllocation {
       /* NetProphet */
       request.getRequestTimingANP().
       	setDnsEndTimeANP(System.currentTimeMillis());
+      request.getRequestTimingANP().setUseDNSCache(routeSelector.isUseCache());
       /* End NetProphet */	
       synchronized (connectionPool) {
         route = selectedRoute;

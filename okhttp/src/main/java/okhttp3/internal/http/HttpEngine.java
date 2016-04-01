@@ -252,8 +252,6 @@ public final class HttpEngine {
         long contentLength = OkHeaders.contentLength(request);
         /* NetProphet */
         userRequest.getRequestTimingANP().setReqSizeANP((int)contentLength);
-        logger.log(Level.INFO, "DEBUG REQ LENGTH(writeRequestHeadersEagerly): "
-        		+contentLength);
         /* End NetProphet */
         if (bufferRequestBody) {
           if (contentLength > Integer.MAX_VALUE) {

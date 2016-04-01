@@ -251,10 +251,10 @@ public class DebugMain {
 			logger.log(
 					Level.INFO,
 					String.format(
-							"    overall:%dms \n    dns:%dms \n    connSetup:%dms (handshake:%dms, tls:%dms) "
+							"    overall:%dms \n    dns:%dms (cahche:%b) \n    connSetup:%dms (handshake:%dms, tls:%dms, cache:%b) "
 									+ "\n    server:%dms \n    resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms) ",
-							overallDelay, dnsDelay, connSetupDelay,
-							timing.getHandshakeTimeANP(), tlsConnDelay,
+							overallDelay, dnsDelay, timing.useDNSCache(), connSetupDelay,
+							timing.getHandshakeTimeANP(), tlsConnDelay,timing.useConnCache(),
 							timing.getEstimatedServerDelay(), respDelay,
 							reqWriteDelay, TTFB, respTransDelay));
 			logger.log(Level.INFO, String.format(
@@ -309,7 +309,7 @@ public class DebugMain {
 		OkHttpClient.initializeNetProphetDesktop(false);
 		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml");
 		
-		/*
+	
 	
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
@@ -317,7 +317,10 @@ public class DebugMain {
 		
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
 		logger.log(Level.INFO, "server URL: "+manager.getRemotePostReportURL() +" "+manager.canStoreToRemoteServerEveryRequest());
-		
+		DebugMain.getStringRequest("http://news.qq.com/");
+		DebugMain.getStringRequest("http://news.qq.com/a/20160401/008098.htm");
+		DebugMain.getStringRequest("http://news.qq.com/a/20160401/032680.htm#p=1");
+		/*
 		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml");
 		DebugMain.getStringRequest("https://www.tmall.com");		
 		DebugMain.getStringRequest("http://www.cnn.com");
