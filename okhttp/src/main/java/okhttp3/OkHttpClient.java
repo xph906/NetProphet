@@ -31,6 +31,9 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import netprophet.NetProphetDns;
+import netprophet.NetProphetOptimizationTool;
+import netprophet.NetProphetOptimizationTool.OptimiztionInterceptor;
+import netprophet.NetProphetPropertyManager;
 import netprophet.NetUtility;
 import android.content.Context;
 import okhttp3.internal.Internal;
@@ -144,15 +147,19 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   final boolean followSslRedirects;
   final boolean followRedirects;
   final boolean retryOnConnectionFailure;
-  final int connectTimeout;
-  final int readTimeout;
+   int connectTimeout;
+   int readTimeout;
   final int writeTimeout;
 
   /* NetProphet */
   Context context;
+  NetProphetPropertyManager propertyManager;
+  NetProphetOptimizationTool optimizationTool;
   static Context staticContext;
   static NetProphetDns netProphetDns = null;
   static NetUtility netUtility;
+  
+  
   
   public static void initializeNetProphet(Context context, boolean enableOptimization){
 	  NetUtility.getInstance(context, null);
@@ -195,7 +202,8 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
     this.proxy = builder.proxy;
     this.protocols = builder.protocols;
     this.connectionSpecs = builder.connectionSpecs;
-    this.interceptors = Util.immutableList(builder.interceptors);
+    //this.interceptors = Util.immutableList(builder.interceptors);
+    this.interceptors = builder.interceptors;
     this.networkInterceptors = Util.immutableList(builder.networkInterceptors);
     this.proxySelector = builder.proxySelector;
     this.cookieJar = builder.cookieJar;
@@ -205,6 +213,8 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
     
     /* NetProphet */
     this.context = staticContext;
+    this.propertyManager = NetProphetPropertyManager.getInstance();
+    this.optimizationTool = NetProphetOptimizationTool.getInstance();
     /* End NetProphet */
 
     boolean isTLS = true;
@@ -361,7 +371,36 @@ public void setContext(Context context) {
    * Prepares the {@code request} to be executed at some point in the future.
    */
   @Override public Call newCall(Request request) {
-    return new RealCall(this, request);
+	  /*NetProphet*/
+	  RealCall rc = new RealCall(this, request);
+	  if(!propertyManager.isEnableOptimization())
+		  return rc;
+	  //deals with header, e.g., gzip
+	  boolean optInterceptorIncluded = false;
+	  for(Interceptor interceptor : interceptors){
+		  if (interceptor.getClass().equals(OptimiztionInterceptor.class)){
+			  ((OptimiztionInterceptor)interceptor).setRealCall(rc);
+			  optInterceptorIncluded = true;
+		  }
+	  }
+	  if(!optInterceptorIncluded)
+		  interceptors.add(optimizationTool.newOptimiztionInterceptor(rc));
+	  int connTimeout = optimizationTool.getOptimizedConnectionTimeout();
+	  if( connTimeout != 0){
+		  this.connectTimeout = connTimeout;
+	  }
+	  
+	  int dnsTimeout = optimizationTool.getOptimizedDNSTimeout();
+	  if (dnsTimeout != 0){
+		  //TODO: set NetProphetDns's timeout.
+	  }
+	  
+	  int recvTimeout = optimizationTool.getOptimizedRecvTimeout();
+	  if (recvTimeout != 0){
+		  this.readTimeout = recvTimeout;
+	  }
+	  /*End NetProphet*/
+    return rc;
   }
 
   public Builder newBuilder() {

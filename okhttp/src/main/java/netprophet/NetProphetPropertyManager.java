@@ -50,6 +50,7 @@ public class NetProphetPropertyManager {
 					Boolean.valueOf(properties.getProperty("StoreToRemoteServerEveryRequest"));
 			DBSyncLimit = Integer.valueOf(properties.getProperty("DBSyncLimit"));
 			DBSyncPacketRecordSize = Integer.valueOf(properties.getProperty("DBSyncPacketRecordSize"));
+			enableOptimization = false;
 			dnsServerMap = new HashMap<String, DNSServer>();
 			try {
 				BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -81,6 +82,14 @@ public class NetProphetPropertyManager {
 		}
 	};
 	
+	public boolean isEnableOptimization() {
+		return enableOptimization;
+	}
+
+	public void setEnableOptimization(boolean enableOptimization) {
+		this.enableOptimization = enableOptimization;
+	}
+
 	public int getDBSyncPacketRecordSize() {
 		return DBSyncPacketRecordSize;
 	}
@@ -103,6 +112,7 @@ public class NetProphetPropertyManager {
 	private Map<String, DNSServer> dnsServerMap;
 	private int DBSyncLimit;
 	private int DBSyncPacketRecordSize;
+	private boolean enableOptimization;
 	
 	public Map<String, DNSServer> getDNSServerMap(){
 		return dnsServerMap;

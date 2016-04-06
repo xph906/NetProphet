@@ -52,7 +52,7 @@ import okhttp3.internal.http.StreamAllocation;
 import static okhttp3.internal.Internal.logger;
 import static okhttp3.internal.http.HttpEngine.MAX_FOLLOW_UPS;
 
-final class RealCall implements Call {
+public class RealCall implements Call {
 	private final OkHttpClient client;
 
 	// Guarded by this.
@@ -91,6 +91,12 @@ final class RealCall implements Call {
     private int MCCANP;   // mobile network code
     private int MNCANP;   // mobile country code
     private int LACANP;   // local area code
+    
+    //optimization
+    private boolean useGZIPOptimization;
+    private int dnsTimeoutOptimization;
+    private int connTimeoutOptimization;
+    private int recvTimeoutOptimization;
     
     private boolean isRunningOnPhone;
 
@@ -200,8 +206,8 @@ final class RealCall implements Call {
 			prevReqID = curID;		
 		}
 
-		/* long reqID, String type, String name, int wifiSignal, int cellSignal, 
-		 * int mcc, int mnc, int lac, int firstMileLat, int firstMilePLR */
+		/* NetInfo: reqID, net type, net name, wifi signal, cell signal, 
+		 * mcc, mnc, lac, firstMileLat, firstMilePLR */
 		NetProphetNetworkData networkData = 
 				new NetProphetNetworkData(objList.get(0).getReqID(), netTypeANP, netNameANP,
 						WIFISigLevelANP, CellSigLevelANP, MCCANP, MNCANP, LACANP, 
@@ -314,6 +320,38 @@ final class RealCall implements Call {
 
 	public void setEndTimeANP(long endTimeANP) {
 		this.endTimeANP = endTimeANP;
+	}
+	
+	public boolean isUseGZIPOptimization() {
+		return useGZIPOptimization;
+	}
+
+	public void setUseGZIPOptimization(boolean useGZIPOptimization) {
+		this.useGZIPOptimization = useGZIPOptimization;
+	}
+
+	public int getDnsTimeoutOptimization() {
+		return dnsTimeoutOptimization;
+	}
+
+	public void setDnsTimeoutOptimization(int dnsTimeoutOptimization) {
+		this.dnsTimeoutOptimization = dnsTimeoutOptimization;
+	}
+
+	public int getConnTimeoutOptimization() {
+		return connTimeoutOptimization;
+	}
+
+	public void setConnTimeoutOptimization(int connTimeoutOptimization) {
+		this.connTimeoutOptimization = connTimeoutOptimization;
+	}
+
+	public int getRecvTimeoutOptimization() {
+		return recvTimeoutOptimization;
+	}
+
+	public void setRecvTimeoutOptimization(int recvTimeoutOptimization) {
+		this.recvTimeoutOptimization = recvTimeoutOptimization;
 	}
 
 	/* End NetProphet Getter and Setter */

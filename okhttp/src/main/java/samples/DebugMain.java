@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,8 +47,11 @@ import com.google.gson.Gson;
 
 public class DebugMain {
 
-	public static void getStringRequest(String url) throws Exception {
-		OkHttpClient client = new OkHttpClient().newBuilder().build();
+	public static void getStringRequest(String url, OkHttpClient oc) throws Exception {
+		OkHttpClient client = oc;
+		if (oc==null)
+			 client = new OkHttpClient().newBuilder().build();
+		
 		//NetProphetClient client1 = new NetProphetClient().newBuilder().build();
 		 
 		// Create request for remote resource.
@@ -56,6 +60,7 @@ public class DebugMain {
 
 		// Execute the request and retrieve the response.
 		Call c = client.newCall(request);
+		
 		Response response;
 		try {
 			response = c.execute();
@@ -306,11 +311,13 @@ public class DebugMain {
 		//"http://52.11.26.222:3000/"
 		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
-		OkHttpClient.initializeNetProphetDesktop(false);
-		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml");
-		
+		NetProphet.initializeNetProphetDesktop(false);
+		OkHttpClient client = new OkHttpClient().newBuilder().build();
+		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/", client);
+		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml", client);
+		DebugMain.getStringRequest("http://www.douban.com", client);
 	
-	
+		/*
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
 		DebugMain.getStringRequest(url);
@@ -320,7 +327,7 @@ public class DebugMain {
 		DebugMain.getStringRequest("http://news.qq.com/");
 		DebugMain.getStringRequest("http://news.qq.com/a/20160401/008098.htm");
 		DebugMain.getStringRequest("http://news.qq.com/a/20160401/032680.htm#p=1");
-		/*
+		
 		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml");
 		DebugMain.getStringRequest("https://www.tmall.com");		
 		DebugMain.getStringRequest("http://www.cnn.com");

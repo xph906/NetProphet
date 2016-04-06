@@ -40,13 +40,15 @@ public class NetProphet {
 		OkHttpClient.initializeNetProphet(context, enableOptimization);
 		DatabaseHandler.getInstance(context);
 		NetUtility.getInstance(context, null);
-		NetProphetPropertyManager.getInstance();
-		logger.setLevel(Level.ALL);
+		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
+		manager.setEnableOptimization(enableOptimization);
 	}
 	/*
 	 * This function is for testing/debugging on desktop.
 	 */
 	public static void initializeNetProphetDesktop(boolean enableOptimization){
+		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
+		manager.setEnableOptimization(enableOptimization);
 		OkHttpClient.initializeNetProphetDesktop(enableOptimization);
 	}
 
