@@ -42,6 +42,7 @@ public class NetProphet {
 		NetUtility.getInstance(context, null);
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
 		manager.setEnableOptimization(enableOptimization);
+		
 	}
 	/*
 	 * This function is for testing/debugging on desktop.
@@ -66,6 +67,21 @@ public class NetProphet {
 	private DatabaseHandler dbHandler;
 	private NetUtility netUtility;
 	private NetProphetPropertyManager propertyManager;
+	private String token;
+	private String appName;
+	
+	public String getToken() {
+		return token;
+	}
+	public void setToken(String token) {
+		this.token = token;
+	}
+	public String getAppName() {
+		return appName;
+	}
+	public void setAppName(String appName) {
+		this.appName = appName;
+	}
 	private NetProphet(){
 		if(context == null){
 			NetProphetLogger.logError("NetProphet", "failed to initialize NetProphet: context is null.");
@@ -75,6 +91,13 @@ public class NetProphet {
 		netUtility = NetUtility.getInstance(context, null);
 		netUtility.setmNetProphet(this);
 		propertyManager = NetProphetPropertyManager.getInstance();
+		if(context != null){
+			appName = context.getPackageName();
+		}
+		else{
+			appName = "APP Name Not Set";
+		}
+		token = "00000000000000000000000000000000";
 	}
 	
 	public void debugDBSynchronization(int count){

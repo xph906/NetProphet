@@ -16,6 +16,7 @@ public class PostCallInfoTask implements Runnable{
     private String contents;
     private OkHttpClient client;
     private MediaType jsonType;
+    private String token, appName;
     
 	public PostCallInfoTask(String contents, String url){
     	if(url == null){
@@ -28,6 +29,15 @@ public class PostCallInfoTask implements Runnable{
     	this.contents = contents;
     	this.client = new OkHttpClient();
     	this.jsonType = MediaType.parse("application/json; charset=utf-8");
+    	NetProphet netProphet = NetProphet.getInstance();
+    	if(netProphet == null){
+    		this.token = "00000000000000000000000000000000";
+    		this.appName = "developement-testing";
+    	}
+    	else{
+    		this.token = netProphet.getToken();
+    		this.appName = netProphet.getAppName();
+    	}
     }
 	  
 	@Override

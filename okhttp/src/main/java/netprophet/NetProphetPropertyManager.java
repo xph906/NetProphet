@@ -51,6 +51,8 @@ public class NetProphetPropertyManager {
 			DBSyncLimit = Integer.valueOf(properties.getProperty("DBSyncLimit"));
 			DBSyncPacketRecordSize = Integer.valueOf(properties.getProperty("DBSyncPacketRecordSize"));
 			enableOptimization = false;
+			connectionTestingURL = properties.getProperty("ConnectionTestingURL");
+			
 			dnsServerMap = new HashMap<String, DNSServer>();
 			try {
 				BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -113,7 +115,16 @@ public class NetProphetPropertyManager {
 	private int DBSyncLimit;
 	private int DBSyncPacketRecordSize;
 	private boolean enableOptimization;
+	private String connectionTestingURL;
 	
+	public String getConnectionTestingURL() {
+		return connectionTestingURL;
+	}
+
+	public void setConnectionTestingURL(String connectionTestingURL) {
+		this.connectionTestingURL = connectionTestingURL;
+	}
+
 	public Map<String, DNSServer> getDNSServerMap(){
 		return dnsServerMap;
 	}

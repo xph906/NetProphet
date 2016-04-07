@@ -23,6 +23,7 @@ public class PostCompressedCallInfoTask implements Runnable {
     private MediaType jsonType;
     private DatabaseHandler handler;
     private int tag;
+    private String appName, token;
     
     public PostCompressedCallInfoTask(String plaintext, String url, DatabaseHandler handler){
     	this.serverURL = url;
@@ -31,6 +32,15 @@ public class PostCompressedCallInfoTask implements Runnable {
     	this.client = new OkHttpClient();
     	this.jsonType = MediaType.parse("application/json; charset=utf-8");
     	this.tag = plaintext.hashCode();
+    	NetProphet netProphet = NetProphet.getInstance();
+    	if(netProphet == null){
+    		this.token = "00000000000000000000000000000000";
+    		this.appName = "developement-testing";
+    	}
+    	else{
+    		this.token = netProphet.getToken();
+    		this.appName = netProphet.getAppName();
+    	}
     }
     
 	@Override
@@ -41,6 +51,8 @@ public class PostCompressedCallInfoTask implements Runnable {
 			request = new Request.Builder()
 				.url(this.serverURL)
 				.addHeader("Content-Encoding", "gzip")
+				.addHeader("X-Token", this.token)
+				.addHeader("X-Application-Name", this.appName)
 				.post(forceContentLength(gzip(body)) )
 				.build();
 		}

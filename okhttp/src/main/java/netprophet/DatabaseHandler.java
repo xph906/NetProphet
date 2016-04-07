@@ -7,6 +7,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -15,7 +16,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import okhttp3.internal.Internal.NetProphetLogger;
 
 import com.google.gson.Gson;
@@ -38,12 +45,17 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     protected ReentrantLock tagSetLock;
     
     private boolean isSynchronizing;
-    private boolean isSyncSuccessful; //check if all requests successful.
+	private boolean isSyncSuccessful; //check if all requests successful.
     private boolean isPreparingRequest; //ensure to dump table only when all requests have been prepared.
     private HashSet<Integer> postTags;
     private long syncStartingTime;
+    private boolean isSyncThreadRunning;
    
-    private NetProphetPropertyManager propertyManager;
+    public boolean isSyncThreadRunning() {
+		return isSyncThreadRunning;
+	}
+
+	private NetProphetPropertyManager propertyManager;
     
     private static DatabaseHandler instance = null;
     public static DatabaseHandler getInstance(Context context) {
@@ -61,6 +73,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         isSynchronizing = false;
         isSyncSuccessful = true;
         isPreparingRequest = false;
+        isSyncThreadRunning = false;
         syncStartingTime = 0;
         propertyManager = NetProphetPropertyManager.getInstance();
         try{	
@@ -121,6 +134,10 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     	return tableExists;
     }
+    
+    public boolean isSynchronizing() {
+		return isSynchronizing;
+	}
 
     private String createTable(String tableName, String[][] columns) {
         if (tableName == null || columns == null || columns.length == 0) {
@@ -882,6 +899,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     {
         return new RequestBatchInsertTask(objList);
     }
+    public DBSynchronizationTask getDBSyncTask(){
+    	return new DBSynchronizationTask(this);
+    }
     public class RequestSingleInsertTask implements Runnable{
 
         private NetProphetHTTPRequestInfoObject infoObject;
@@ -909,5 +929,58 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         public void run() {
             addRequestInfos(objectList);
         }
+    }
+    
+    public class DBSynchronizationTask implements Runnable{
+    	private DatabaseHandler dbHandler;
+    	private String url;
+    	private long goodConnThreshold;
+    	
+    	public DBSynchronizationTask(DatabaseHandler handler){
+    		dbHandler = handler;
+    		url = propertyManager.getConnectionTestingURL();
+    		goodConnThreshold = 1000;
+    	}
+		@Override
+		public void run() {
+			dbHandler.isSyncThreadRunning = true;
+			OkHttpClient client = new OkHttpClient();
+			Request request = new Request.Builder().url(url).build();
+
+			
+			Call c = client.newCall(request);
+			Response response;
+			long delay = 0;
+			for(int i=0; i<3; i++){
+				try {
+					long t1 = System.currentTimeMillis();
+					response = c.execute();
+					ResponseBody body = response.body();
+					String str = body.string();
+					delay = System.currentTimeMillis() - t1;
+					if(response.code()==200 &&
+						delay < goodConnThreshold){
+						NetProphetLogger.logDebugging("DBSynchronizationTask", 
+								"conn testing delay is:"+delay+"ms, okay to do synchronization");
+						break;
+					}
+					
+				} catch (Exception e) {
+					NetProphetLogger.logError("DBSynchronizationTask", "failed connection testing:"+e);
+				}
+				NetProphetLogger.logDebugging("DBSynchronizationTask", 
+						"conn testing delay is:"+delay+"ms, poor condition, wait for 5 mins and try again");
+				SystemClock.sleep(7000);
+			}
+			
+			if(delay >= goodConnThreshold){
+				dbHandler.isSyncThreadRunning = false;
+				return ;
+			}
+			if(!this.dbHandler.synchronizeDatabase()){
+				NetProphetLogger.logError("DBSynchronizationTask", "failed to synchronize database");
+			}
+			dbHandler.isSyncThreadRunning = false;
+		}
     }
 }
