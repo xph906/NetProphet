@@ -197,7 +197,7 @@ public class RealCall implements Call {
 					timingObj.getTlsHandshakeTimeANP(), reqWriteDelay,
 					timingObj.getEstimatedServerDelay(), TTFBDelay,
 					respTransDelay, useConnCache, useDNSCache, useRespCache,
-					respObj.getSizeANP(), respObj.getCodeANP(), reqSize,
+					respObj.getSizeANP(), respObj.getCodeANP(), reqSize, respObj.getRespType(),
 					callStatInfo.isFailedCallANP(),
 					callStatInfo.getCallErrorMsg().toString(),
 					callStatInfo.getDetailedErrorMsgANP(), (long) 0, 0);

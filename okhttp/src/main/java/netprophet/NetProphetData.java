@@ -81,6 +81,7 @@ public class NetProphetData {
         static final String RESP_SIZE = "resp_size";
         static final String HTTP_CODE = "http_code";
         static final String REQ_SIZE = "req_size";
+        static final String RESP_TYPE = "resp_type";
 
         // 6. Error information
 	/* Note for a redirection chain, an error can only be at the last request
@@ -116,7 +117,7 @@ public class NetProphetData {
                 {TLS_DELAY,TYPE_INTEGER},{REQ_WRITE_DELAY,TYPE_INTEGER},{SERVER_DELAY,TYPE_INTEGER},{TTFB_DELAY,TYPE_INTEGER},
                 {RESP_TRANS_DELAY,TYPE_INTEGER},{USE_CONN_CACHE,TYPE_BOOLEAN},{USE_DNS_CACHE,TYPE_BOOLEAN},{USE_RESP_CACHE,TYPE_BOOLEAN},
                 {RESP_SIZE,TYPE_INTEGER},{HTTP_CODE,TYPE_INT},{REQ_SIZE,TYPE_INT},{IS_FAILED_REQUEST,TYPE_BOOLEAN},
-                {ERROR_MSG,TYPE_TEXT},{DETAILED_ERROR_MSG,TYPE_TEXT},{TRANS_ID,TYPE_INTEGER},{TRANS_TYPE,TYPE_INT}};
+                {ERROR_MSG,TYPE_TEXT},{DETAILED_ERROR_MSG,TYPE_TEXT},{TRANS_ID,TYPE_INTEGER},{TRANS_TYPE,TYPE_INT},{RESP_TYPE, TYPE_TEXT}};
 
     }
 

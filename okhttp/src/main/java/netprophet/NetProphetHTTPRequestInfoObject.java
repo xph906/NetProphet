@@ -38,7 +38,16 @@ public class NetProphetHTTPRequestInfoObject {
 	private long respSize;
 	private int HTTPCode;
 	private int reqSize;  /* if post streaming data, the reqSize is 0 */
+	private String respType;
 	
+	public String getRespType() {
+		return respType;
+	}
+
+	public void setRespType(String respType) {
+		this.respType = respType;
+	}
+
 	// 6. Error information
 	/* Note for a redirection chain, an error can only be at the last request
 	 * So for all the requests in a redirection chain, the error related information
@@ -72,7 +81,7 @@ public class NetProphetHTTPRequestInfoObject {
 			long connDelay, long handshakeDelay, long tlsDelay, long reqWriteDelay,
 			long serverDelay, long TTFBDelay, long respTransDelay, 
 			boolean useConnCache, boolean useDNSCache, boolean useRespCache,
-			long respSize, int HTTPCode, int reqSize, 
+			long respSize, int HTTPCode, int reqSize, String respType,
 			boolean isFailedRequest, String errorMsg, String detailedErrorMsg,
 			long transID, int transType){
 		this.reqID = reqID;
@@ -103,6 +112,7 @@ public class NetProphetHTTPRequestInfoObject {
 		this.detailedErrorMsg = detailedErrorMsg;
 		this.transID = transID;
 		this.transType = transType;
+		this.respType = respType;
 	}
 	
 	public long getReqID() {

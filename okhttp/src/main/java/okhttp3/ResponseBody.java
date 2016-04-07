@@ -84,7 +84,7 @@ public abstract class ResponseBody implements Closeable {
   //   2. respSize 
   //   3. user comments: if the call triggers an Exception, 
   //         clients can put error information into the comments.
-  public void informFinishedReadingResponse(int size, String comments, int respEndTime){
+  public void informFinishedReadingResponse(int size, String comments, int respEndTime, String type){
 	NetProphetPropertyManager propertyManager = NetProphetPropertyManager.getInstance();
     if(userRequest != null){
       if(respEndTime == 0)
@@ -93,6 +93,7 @@ public abstract class ResponseBody implements Closeable {
     	  userRequest.getRequestTimingANP().setRespEndTimeANP(0);
 	  userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
 	  userRequest.getResponseInfoANP().setSizeANP(size);
+	  userRequest.getResponseInfoANP().setRespType(type);
 	  if(comments != "")
 		  userRequest.getResponseInfoANP().setUserComments(comments);
 	  userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
@@ -106,7 +107,11 @@ public abstract class ResponseBody implements Closeable {
   //this function has to run on Android
   public Bitmap bitmap(){
 	Bitmap map =BitmapFactory.decodeStream(byteStream());
-	informFinishedReadingResponse(map.getByteCount(),"",0);
+	 String type = "";
+	 if(contentType() != null){
+		 type = contentType().type().toLowerCase();
+	 }
+	informFinishedReadingResponse(map.getByteCount(),"",0, type);
 	return map;
   }
   
@@ -167,7 +172,12 @@ public abstract class ResponseBody implements Closeable {
   public final String string() throws IOException {
 	 String str = new String(bytes(), charset().name());
 	/* NetProphet */
-	informFinishedReadingResponse(str.length(),"", 0);
+	 String type = "";
+	 if(contentType() != null){
+		 type = contentType().type().toLowerCase() + "/" + contentType().subtype().toLowerCase();
+	 }
+	 //System.err.println("NETPROPHET: CONTENTTYPE:"+type);
+	informFinishedReadingResponse(str.length(),"", 0, type);
 	/* End NetProphet */  
     return str;
   }

@@ -39,7 +39,14 @@ public final class Request {
 		private long sizeANP;
 		private int codeANP;
 		private String userComments;
+		private String respType;
 		
+		public String getRespType() {
+			return respType;
+		}
+		public void setRespType(String respType) {
+			this.respType = respType;
+		}
 		public String getUserComments() {
 			return userComments;
 		}
@@ -63,6 +70,7 @@ public final class Request {
 			sizeANP = 0;
 			codeANP = 0;
 			userComments = "";
+			respType = "";
 		}
 	}
 	
@@ -110,6 +118,7 @@ public final class Request {
 			this.useConnCache = false;
 			this.useRespCache = false;
 			errorString = "";
+			
 		}
 
 		/*

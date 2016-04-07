@@ -307,7 +307,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                                     cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
                                     cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
                                     cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
-                                    cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
+                                    cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getString(28), cursor.getInt(23) > 0,
                                     cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
                 				requestList.add(infoObject);
                 			} while (cursor.moveToNext() && requestList.size() < packetSize);
@@ -385,6 +385,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 values.put(NetProphetData.RequestColumns.SERVER_DELAY, infoObject.getServerDelay());
                 values.put(NetProphetData.RequestColumns.TTFB_DELAY, infoObject.getTTFBDelay());
                 values.put(NetProphetData.RequestColumns.RESP_TRANS_DELAY, infoObject.getRespTransDelay());
+                
+                values.put(NetProphetData.RequestColumns.RESP_TYPE, infoObject.getRespType());
 
                 if (infoObject.isUseConnCache()) {
                     values.put(NetProphetData.RequestColumns.USE_CONN_CACHE, 1);
@@ -463,6 +465,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     values.put(NetProphetData.RequestColumns.SERVER_DELAY, infoObject.getServerDelay());
                     values.put(NetProphetData.RequestColumns.TTFB_DELAY, infoObject.getTTFBDelay());
                     values.put(NetProphetData.RequestColumns.RESP_TRANS_DELAY, infoObject.getRespTransDelay());
+                    values.put(NetProphetData.RequestColumns.RESP_TYPE, infoObject.getRespType());
 
                     if (infoObject.isUseConnCache()) {
                         values.put(NetProphetData.RequestColumns.USE_CONN_CACHE, 1);
@@ -579,7 +582,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                                 cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
                                 cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
                                 cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
-                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
+                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getString(28), cursor.getInt(23) > 0,
                                 cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
 
                         requestList.add(infoObject);
@@ -617,7 +620,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                                 cursor.getLong(8), cursor.getLong(9), cursor.getLong(10), cursor.getLong(11),
                                 cursor.getLong(12), cursor.getLong(13), cursor.getLong(14), cursor.getLong(15),
                                 cursor.getLong(16), cursor.getInt(17) > 0, cursor.getInt(18) > 0, cursor.getInt(19) > 0,
-                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getInt(23) > 0,
+                                cursor.getLong(20), cursor.getInt(21), cursor.getInt(22), cursor.getString(28), cursor.getInt(23) > 0,
                                 cursor.getString(24), cursor.getString(25), cursor.getLong(26), cursor.getInt(27));
 
                         requestList.add(infoObject);

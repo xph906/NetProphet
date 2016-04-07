@@ -313,10 +313,10 @@ public class DebugMain {
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
 		NetProphet.initializeNetProphetDesktop(false);
 		OkHttpClient client = new OkHttpClient().newBuilder().build();
-		DebugMain.getStringRequest("http://garuda.cs.northwestern.edu:3000/", client);
+		DebugMain.getStringRequest("http://www.cnn.com/data/ocs/section/index.html:homepage4-zone-3/views/zones/common/zone-manager.html", client);
 		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml", client);
 		DebugMain.getStringRequest("http://www.douban.com", client);
-	
+		DebugMain.getStringRequest("http://cdn.iciba.com/news/word/2016-04-08.jpg", client);
 		/*
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";
