@@ -313,10 +313,43 @@ public class DebugMain {
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
 		NetProphet.initializeNetProphetDesktop(false);
 		OkHttpClient client = new OkHttpClient().newBuilder().build();
-		DebugMain.getStringRequest("http://www.cnn.com/data/ocs/section/index.html:homepage4-zone-3/views/zones/common/zone-manager.html", client);
-		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml", client);
-		DebugMain.getStringRequest("http://www.douban.com", client);
-		DebugMain.getStringRequest("http://cdn.iciba.com/news/word/2016-04-08.jpg", client);
+		
+		//******
+		MultipartBody.Builder formBuilder = new MultipartBody.Builder();
+        formBuilder.setType(MultipartBody.FORM)
+                .addFormDataPart("uid", "MCDEFG")
+                .addFormDataPart("msg", "ABCDEF");
+
+		  RequestBody requestBody = formBuilder.build();
+		  
+		Request request = new Request.Builder().url("http://garuda.cs.northwestern.edu:3000/")
+                .addHeader("Connection", "Keep-Alive")
+                .post(requestBody)
+                .build();
+		client.newCall(request).enqueue(new Callback() {
+		      @Override public void onFailure(Call call, IOException e) {
+		          e.printStackTrace();
+		        }
+
+		        @Override public void onResponse(Call call, Response response) throws IOException {
+		          if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+		          Headers responseHeaders = response.headers();
+		          for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+		            System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+		          }
+
+		          System.out.println(response.body().string());
+		        }
+		      });
+		
+		System.err.println("END HERE");
+		//******
+		
+		//DebugMain.getStringRequest("http://www.cnn.com/data/ocs/section/index.html:homepage4-zone-3/views/zones/common/zone-manager.html", client);
+		//DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml", client);
+		//DebugMain.getStringRequest("http://www.douban.com", client);
+		//DebugMain.getStringRequest("http://cdn.iciba.com/news/word/2016-04-08.jpg", client);
 		/*
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";

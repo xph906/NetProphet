@@ -564,6 +564,8 @@ public class RealCall implements Call {
 			throws IOException {
 		// Copy body metadata to the appropriate request headers.
 		RequestBody body = request.body();
+		//NetProphet: 
+		//Note that if this request has body, the request will be reproduced!
 		if (body != null) {
 			Request.Builder requestBuilder = request.newBuilder();
 

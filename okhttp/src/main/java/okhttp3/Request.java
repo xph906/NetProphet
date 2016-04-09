@@ -302,7 +302,10 @@ public final class Request {
 		/* NetProphet Initialization */
 		requestTimingANP = new RequestTimingANP();
 		responseInfoANP = new ResponseInfoANP();
-		call = null;
+		if(builder.call != null)
+			call = builder.call;
+		else
+			call = null;
 		/* End NetProphet Initialization*/
 	}
 
@@ -390,10 +393,16 @@ public final class Request {
 		private Headers.Builder headers;
 		private RequestBody body;
 		private Object tag;
-
+		/* NetProphet */
+		private Call call;
+		/*End NetProphet */
+		
 		public Builder() {
 			this.method = "GET";
 			this.headers = new Headers.Builder();
+			/* NetProphet */
+			this.call = null;
+			/*End NetProphet */
 		}
 
 		private Builder(Request request) {
@@ -402,6 +411,11 @@ public final class Request {
 			this.body = request.body;
 			this.tag = request.tag;
 			this.headers = request.headers.newBuilder();
+			
+			/* NetProphet */
+			if(request.call != null)
+				this.call = request.call;
+			/*End NetProphet */
 		}
 
 		public Builder url(HttpUrl url) {
