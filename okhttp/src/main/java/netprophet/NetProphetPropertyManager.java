@@ -37,6 +37,18 @@ public class NetProphetPropertyManager {
 			return String.format("DNSServer:%s %s in:%s", name, IP, location);
 		}
 	};
+	private Properties properties;
+	private String serverHost;
+	private String serverPort;
+	private String serverScheme;
+	private boolean storeToRemoteServerEveryRequest; 
+	private String remotePostReportPath;
+	private String DNSTestingHostPath;
+	private Map<String, DNSServer> dnsServerMap;
+	private int DBSyncLimit;
+	private int DBSyncPacketRecordSize;
+	private boolean enableOptimization;
+	private String connectionTestingURL;
 	
 	private NetProphetPropertyManager(){
 		try {
@@ -103,19 +115,11 @@ public class NetProphetPropertyManager {
 	public int getDBSyncLimit() {
 		return DBSyncLimit;
 	}
+	public void setDBSyncLimit(int dBSyncLimit) {
+		DBSyncLimit = dBSyncLimit;
+	}
 
-	private Properties properties;
-	private String serverHost;
-	private String serverPort;
-	private String serverScheme;
-	private boolean storeToRemoteServerEveryRequest; 
-	private String remotePostReportPath;
-	private String DNSTestingHostPath;
-	private Map<String, DNSServer> dnsServerMap;
-	private int DBSyncLimit;
-	private int DBSyncPacketRecordSize;
-	private boolean enableOptimization;
-	private String connectionTestingURL;
+
 	
 	public String getConnectionTestingURL() {
 		return connectionTestingURL;

@@ -72,7 +72,7 @@ public class NetProphet {
 	private String appName;
 	
 	public void setDBSyncRecordNumberThreshold(int size){
-		propertyManager.setDBSyncPacketRecordSize(size);
+		propertyManager.setDBSyncLimit(size);
 	}
 	public String getToken() {
 		return token;
