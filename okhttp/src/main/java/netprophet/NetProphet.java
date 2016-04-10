@@ -37,9 +37,10 @@ public class NetProphet {
 	 */
 	public static void initializeNetProphet(Context context, boolean enableOptimization){
 		NetProphet.context = context;
+		NetProphet.getInstance();
 		OkHttpClient.initializeNetProphet(context, enableOptimization);
 		DatabaseHandler.getInstance(context);
-		NetUtility.getInstance(context, null);
+		NetUtility.getInstance(context, null);		
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
 		manager.setEnableOptimization(enableOptimization);
 		
@@ -70,6 +71,9 @@ public class NetProphet {
 	private String token;
 	private String appName;
 	
+	public void setDBSyncRecordNumberThreshold(int size){
+		propertyManager.setDBSyncPacketRecordSize(size);
+	}
 	public String getToken() {
 		return token;
 	}

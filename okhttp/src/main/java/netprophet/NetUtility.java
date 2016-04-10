@@ -376,6 +376,8 @@ public class NetUtility extends PhoneStateListener {
     public int getCellSignalStrength()
     {
         int dbm = 0;
+        if(mSignalStrength == null)
+        	return 0;
         try {
             if (mCellularType == TelephonyManager.NETWORK_TYPE_LTE) {
                 String ssignal = mSignalStrength.toString();
