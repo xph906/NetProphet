@@ -6,6 +6,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 
 import netprophet.NetProphetPropertyManager.DNSServer;
+import netprophet.PingTool.MeasureResult;
 import okhttp3.Call;
 import okhttp3.Dns;
 import okhttp3.OkHttpClient;
@@ -674,14 +675,21 @@ public class NetProphetDns implements Dns {
     	NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
     	Map<String, DNSServer> dnsServerMap = manager.getDNSServerMap();
     	Map<String, Map<String, List<Integer>>> results = new HashMap<String, Map<String, List<Integer>>>();
+    	Map<String, Map<String, MeasureResult>> hostPingResults = new HashMap<String, Map<String, MeasureResult>>();
+    	PingTool pingTool = new PingTool();
     	try{
 	    	for(int i=0; i<5; i++){
 	    		for(DNSServer server : dnsServerMap.values()){
 	    			//logger.info("start testing :"+server);
 	    			Map<String, List<Integer>> serverData = results.get(server.name);
+	    			Map<String, MeasureResult> pingData = hostPingResults.get(server.name);
 	    			if (serverData == null){
 	    				serverData = new HashMap<String, List<Integer>>();
 	    				results.put(server.name, serverData);
+	    			}
+	    			if(pingData == null){
+	    				pingData = new HashMap<String, MeasureResult>();
+	    				hostPingResults.put(server.name, pingData);
 	    			}
 	    			
 		    		for(String hostname : hostnames){
@@ -701,6 +709,14 @@ public class NetProphetDns implements Dns {
 				        if (!isSucc) dnsDelay = 10000;
 				        NetProphetLogger.logDebugging("findBestDNSServer",
 				        		"  done DNS lookup "+hostname+" in "+dnsDelay +" ms" +" isSucc:"+isSucc);
+				        if(records!=null && records.length >0 && pingData.get(hostname)==null){
+				        	ARecord ar = (ARecord)records[0];
+				        	NetProphetLogger.logDebugging("findBestDNSServer", 
+				        			"ping test: host:"+hostname+" ip:"+ar.getAddress().getHostAddress());
+				        	MeasureResult pingRS = pingTool.doPing(ar.getAddress().getHostAddress());
+				        	pingData.put(hostname, pingRS);
+				        }
+				        
 				        
 				        if(serverData.containsKey(hostname))
 				        	serverData.get(hostname).add((int)dnsDelay);
@@ -716,6 +732,7 @@ public class NetProphetDns implements Dns {
 	    	Set<String> servers = results.keySet();
 	    	for(String server : servers) {   		
 	    		Map<String, List<Integer>> serverData = results.get(server);
+	    		Map<String, MeasureResult> pingData = hostPingResults.get(server);
 	    		Set<String> hosts = serverData.keySet();
 	    		long val = 0;
 	    		StringBuilder sb = new StringBuilder();
