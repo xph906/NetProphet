@@ -184,6 +184,11 @@ public final class StreamAllocation {
 
       RealConnection allocatedConnection = this.connection;
       if (allocatedConnection != null && !allocatedConnection.noNewStreams) {
+    	  /* NetProphet */
+          //ConnSetupEndTime = 0 means connection is from pool
+          request.getRequestTimingANP().setConnSetupEndTimeANP(0);
+          request.getRequestTimingANP().setUseConnCache(true);
+          /* End NetProphet */
         return allocatedConnection;
       }
 

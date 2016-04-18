@@ -49,6 +49,7 @@ public class NetProphetPropertyManager {
 	private int DBSyncPacketRecordSize;
 	private boolean enableOptimization;
 	private String connectionTestingURL;
+	private String remotePostReportFullPath;
 	
 	private NetProphetPropertyManager(){
 		try {
@@ -64,6 +65,8 @@ public class NetProphetPropertyManager {
 			DBSyncPacketRecordSize = Integer.valueOf(properties.getProperty("DBSyncPacketRecordSize"));
 			enableOptimization = false;
 			connectionTestingURL = properties.getProperty("ConnectionTestingURL");
+			remotePostReportFullPath = String.format("%s://%s:%s%s", 
+					serverScheme, serverHost, serverPort, remotePostReportPath);
 			
 			dnsServerMap = new HashMap<String, DNSServer>();
 			try {
@@ -156,11 +159,13 @@ public class NetProphetPropertyManager {
 	public String getRemotePostReportPath() {
 		return remotePostReportPath;
 	}
+	public void setRemotePostReportURL(String url){
+		remotePostReportFullPath = url;
+	}
 	
 	public String getRemotePostReportURL(){
-		return 
-			String.format("%s://%s:%s%s", 
-					serverScheme, serverHost, serverPort, remotePostReportPath);
+		return remotePostReportFullPath;
+			
 	}
 	public String getDNSServerTestingURLList(){
 		return

@@ -74,6 +74,7 @@ public class NetProphet {
 	public void setDBSyncRecordNumberThreshold(int size){
 		propertyManager.setDBSyncLimit(size);
 	}
+	
 	public String getToken() {
 		return token;
 	}
@@ -122,6 +123,13 @@ public class NetProphet {
 		String syncInfo = dbHandler.getDBSyncData();
 		return String.format("DBInfo: reqRecordCount:%d  NetInfoRecordCount:%d\n SyncInfo:%s",
 				reqCount, netinfoCount, syncInfo);
+	}
+	
+	public void setRemotePostReportServerURL(String url){
+		propertyManager.setRemotePostReportURL(url);
+	}
+	public String getRemotePostReportServer(){
+		return propertyManager.getRemotePostReportURL();
 	}
 	
 	protected void networkingChanged(int type, String name){

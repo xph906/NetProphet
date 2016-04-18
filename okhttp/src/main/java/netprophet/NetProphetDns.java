@@ -11,6 +11,7 @@ import okhttp3.Dns;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.internal.Internal.NetProphetLogger;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -111,7 +112,6 @@ public class NetProphetDns implements Dns {
             return searchCache(secondLevelCache, hostname);
         else
             return null;
-
     }
 
     /* Cache Key Rule:
@@ -699,7 +699,9 @@ public class NetProphetDns implements Dns {
 				        long dnsDelay = System.currentTimeMillis() - dnsStartTimeout;
 				        boolean isSucc = !(records == null);
 				        if (!isSucc) dnsDelay = 10000;
-				        //logger.info("  done DNS lookup "+hostname+" in "+dnsDelay +" ms" +" isSucc:"+isSucc);
+				        NetProphetLogger.logDebugging("findBestDNSServer",
+				        		"  done DNS lookup "+hostname+" in "+dnsDelay +" ms" +" isSucc:"+isSucc);
+				        
 				        if(serverData.containsKey(hostname))
 				        	serverData.get(hostname).add((int)dnsDelay);
 				        else{
