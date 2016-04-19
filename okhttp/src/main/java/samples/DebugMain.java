@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import netprophet.NetProphet;
+import netprophet.NetProphetDebugObserver;
 import netprophet.NetProphetPropertyManager;
 import netprophet.PingTool;
 import netprophet.PingTool.MeasureResult;
@@ -316,8 +317,10 @@ public class DebugMain {
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
 		NetProphet.initializeNetProphetDesktop(false);
 		OkHttpClient client = new OkHttpClient().newBuilder().build();
+		NetProphetDebugObserver debugger = new NetProphetDebugObserver(null);
+		debugger.debugTestingDNSServer(2,2,null);
 		
-		PingTool pingTool = new PingTool();
+        /*PingTool pingTool = new PingTool();
 		
 		MeasureResult rs = pingTool.doPing("211.147.4.31");
 		NetProphetLogger.logDebugging("main", rs.toString());
@@ -330,12 +333,8 @@ public class DebugMain {
 		
 		rs = pingTool.doPing("2.2.2.2");
 		NetProphetLogger.logDebugging("main", rs.toString());
-		/*
-		rs = pingTool.doPing("66.102.251.33");
-		NetProphetLogger.logDebugging("main", rs.toString());
-		rs = pingTool.doPing("2.2.2.2");
-		NetProphetLogger.logDebugging("main", rs.toString());
 		*/
+		
 		//******
 		
 		//DebugMain.getStringRequest("http://www.cnn.com/data/ocs/section/index.html:homepage4-zone-3/views/zones/common/zone-manager.html", client);

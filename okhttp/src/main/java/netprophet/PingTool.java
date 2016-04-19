@@ -38,21 +38,24 @@ public class PingTool
 	
     List<String> commands;
     Pattern summaryPattern, dataPattern, icmpTimeoutPattern;
-
+    
     public PingTool(){
         commands = new ArrayList<String>();
         commands.add("ping");
         commands.add("-c");
         commands.add("5");
         summaryPattern = Pattern.compile(
-        		"[0-9]+ packets transmitted, [0-9]+ packets received, ([0-9]+.[0-9]+)% packet loss");
+        		"[0-9]+ packets transmitted, [0-9]+ (packets )?received, ([0-9]+.[0-9]+)% packet loss");
         dataPattern = Pattern.compile(
-        		"round-trip min/avg/max/stddev = ([0-9]+.[0-9]+)/([0-9]+.[0-9]+)/([0-9]+.[0-9]+)/([0-9]+.[0-9]+) ms");
+        		"min/avg/max/[a-z]+dev = ([0-9]+.[0-9]+)/([0-9]+.[0-9]+)/([0-9]+.[0-9]+)/([0-9]+.[0-9]+) ms");
         icmpTimeoutPattern = Pattern.compile("Request timeout for icmp_seq");
+    }
+    public MeasureResult getFailedMeasureResult(String host){
+    	return new MeasureResult(host, (float)1000.0, (float)0.0, (float)100.0);
     }
     
     private MeasureResult doTCPPing(String ip){
-    	NetProphetLogger.logDebugging("doTCPPing", "TCP Ping for "+ip);
+    	//NetProphetLogger.logDebugging("doTCPPing", "TCP Ping for "+ip);
     	MeasureResult result = new MeasureResult(ip);
     	long[] delays = new long[5];
     	int errorCount = 0;
@@ -90,7 +93,7 @@ public class PingTool
     public MeasureResult doPing(String ip){
     	MeasureResult result = new MeasureResult(ip);
     	commands.add(ip);
-    	boolean doTCPPing = false;
+    	boolean doTCPPing = true;
     	
         try{
             ProcessBuilder pb = new ProcessBuilder(commands);
@@ -103,10 +106,10 @@ public class PingTool
             List<String> stdoutRS = new LinkedList<String>();    
             while ((s = stdInput.readLine()) != null)
             {
-            	//System.out.println(s);
+            	//NetProphetLogger.logDebugging("doPing","raw results:"+s);
             	Matcher match = summaryPattern.matcher(s);
             	if(match.find()){
-            		Float f = Float.valueOf(match.group(1));
+            		Float f = Float.valueOf(match.group(2));
             		//NetProphetLogger.logDebugging("PingTool", "IP:"+ip+" lossrate:"+f+"%");
             		result.lossRate = f;
             		continue;
@@ -118,19 +121,15 @@ public class PingTool
             		//NetProphetLogger.logDebugging("PingTool", "IP:"+ip+" avg:"+avg+"ms "+"stddev:"+stddev);
             		result.avgDelay = avg;
             		result.stdDev = stddev;
-            		continue;
-            	}
-            	match = icmpTimeoutPattern.matcher(s);
-            	if(match.find()){
-            		doTCPPing = true;
+            		doTCPPing = false;
             		break;
-            	}
+            	}    	
             }
             
-            while (!doTCPPing && (s = stdError.readLine()) != null)
+            /*while (!doTCPPing && (s = stdError.readLine()) != null)
             {
             	NetProphetLogger.logError("PingTool", s);
-            }
+            }*/
             
         }
         catch(Exception e){

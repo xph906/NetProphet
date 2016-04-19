@@ -45,6 +45,7 @@ public class NetProphet {
 		manager.setEnableOptimization(enableOptimization);
 		
 	}
+	
 	/*
 	 * This function is for testing/debugging on desktop.
 	 */
@@ -74,7 +75,9 @@ public class NetProphet {
 	public void setDBSyncRecordNumberThreshold(int size){
 		propertyManager.setDBSyncLimit(size);
 	}
-	
+	public Context getContext(){
+		return context;
+	}
 	public String getToken() {
 		return token;
 	}
@@ -105,6 +108,7 @@ public class NetProphet {
 		token = "00000000000000000000000000000000";
 	}
 	
+	/* Moved to NetProphetDebugObserver
 	public void debugDBSynchronization(int count){
 		long reqCount = dbHandler.getRequestInfoCount();
 		if(reqCount >= count){
@@ -117,6 +121,8 @@ public class NetProphet {
 					"too early to do DB synchronization because of "+reqCount+" records");
 		}
 	}
+	*/
+	
 	public String getDBInfo(){
 		long reqCount = dbHandler.getRequestInfoCount();
 		long netinfoCount = dbHandler.getNetInfoCount();

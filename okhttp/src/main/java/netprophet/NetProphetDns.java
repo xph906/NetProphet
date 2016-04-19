@@ -14,6 +14,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.internal.Internal.NetProphetLogger;
 
+import java.io.File;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -622,6 +624,82 @@ public class NetProphetDns implements Dns {
             }
         }
     }
+    
+    /* 1. The value of maxDnsServerCount can be zero, meaning that it depends
+     * on the dnsserverlist.properties. 
+     * 2. In any case, the dns server list should include "local".
+     * 3. The value of maxHostnameCount can be zero, meaning that it depends 
+     * on the `hostnames`.
+     * 4. The parameter `hostnames` can be zero, in that case, the hostnames will
+     * be loaded from the server. The size of the hostnames will be limited by `maxHostnameCount`. 
+     * */
+    public void startDNSServerMeasurement(int maxDnsServerCount, int maxHostnameCount, List<String> hostnames){
+    	DNSServerMeasurementTask task = new DNSServerMeasurementTask(maxDnsServerCount, maxHostnameCount, hostnames);
+    	executor.submit(task);
+    }
+    
+    private class DNSServerMeasurementTask implements Runnable {
+        private List<String> hostnames;
+        private int maxDnsServerCount;
+        private int maxHostnameCount;
+  
+        /* 1. The value of maxDnsServerCount can be zero, meaning that it depends
+         * on the dnsserverlist.properties. 
+         * 2. In any case, the dns server list should include "local".
+         * 3. The value of maxHostnameCount can be zero, meaning that it depends 
+         * on the `hostnames`.
+         * 4. The parameter `hostnames` can be zero, in that case, the hostnames will
+         * be loaded from the server. The size of the hostnames will be limited by `maxHostnameCount`. 
+         * */
+        public DNSServerMeasurementTask(int maxDnsServerCount, int maxHostnameCount, List<String> hostnames){
+            this.hostnames = hostnames;
+            if(maxHostnameCount <= 0)
+            	this.maxHostnameCount = 10000;
+            else
+            	this.maxHostnameCount = maxHostnameCount;
+            
+            if(maxDnsServerCount<=0)
+            	this.maxDnsServerCount = 10000;
+            else
+            	this.maxDnsServerCount = maxDnsServerCount;
+        }
+
+        @Override
+        public void run() {
+            try {
+                if(this.hostnames == null)
+                	this.hostnames = loadDNSServerTestingHostList();
+                if(this.hostnames == null){
+                	NetProphetLogger.logError("DNSServerMeasurementTask", "hostnames are null");
+                	return ;
+                }
+                while(hostnames.size() > maxHostnameCount){
+                	hostnames.remove(hostnames.size()-1);
+                }
+            	
+                NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
+            	Map<String, DNSServer> dnsServerMap = manager.getDNSServerMap();
+                while(dnsServerMap.size() > maxDnsServerCount){
+                	Iterator<String> it = dnsServerMap.keySet().iterator();
+                	String s = it.next();
+                	if(s.equals("local")){
+                		s = it.next();
+                	}
+                	dnsServerMap.remove(s);
+                }
+                NetProphetLogger.logDebugging("DNSServerMeasurementTask", 
+                		"start DNS server measurement");
+                findBestDNSServer( hostnames, dnsServerMap);
+                NetProphetLogger.logDebugging("DNSServerMeasurementTask", 
+                		"finish DNS server measurement");
+                
+            }
+            catch(Exception e){
+                logger.severe("error in DelayItemListOperationTask: "+e);
+                e.printStackTrace();
+            }
+        }
+    }
 
     //now this function has no use, but it demonstrates how to modify superclass's private field.
     private void modifyARecordTTL(ARecord record){
@@ -671,16 +749,89 @@ public class NetProphetDns implements Dns {
 		
     }
     
-    private void findBestDNSServer(List<String> hostnames){
-    	NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
-    	Map<String, DNSServer> dnsServerMap = manager.getDNSServerMap();
+    private boolean storeDNSServerMeasureData(String filename, 
+    		Map<String, Map<String, List<Integer>>> dnsDelay, 
+    		Map<String, Map<String, MeasureResult>> pingDelay){
+    	if(dnsDelay==null || pingDelay==null){
+    		NetProphetLogger.logError("storeDNSServerMeasureData", "data is empty");
+    		return false;
+    	}
+    	try{
+    		NetProphetLogger.logDebugging("storeDNSServerMeasureData", "start logging measurement results");
+	    	//open file.
+    		NetProphet netprophet = NetProphet.getInstance();
+    		File dnsOutFile, pingOutFile;
+    		if( netprophet!= null){
+    			dnsOutFile = new File(netprophet.getContext().getFilesDir(), filename+"_dns.txt");
+    			pingOutFile = new File(netprophet.getContext().getFilesDir(), filename+"_ping.txt");
+    		}
+    		else{
+    			dnsOutFile = new File(filename+"_dns.txt");
+    			pingOutFile = new File(filename+"_ping.txt");
+    		}
+	    	PrintWriter dnsWriter = new PrintWriter(dnsOutFile );
+	    	PrintWriter pingWriter = new PrintWriter(pingOutFile);
+	    	
+	    	Set<String> servers = dnsDelay.keySet();
+	    	//local has to exist
+	    	Map<String, List<Integer>> data = dnsDelay.get("local");
+	    	Set<String> hosts = data.keySet();
+	    	StringBuilder header = new StringBuilder();
+	    	header.append("delay");
+	    	for(String host : hosts)
+	    		header.append(","+host);
+	    	dnsWriter.println(header.toString());
+	    	pingWriter.println(header.toString());
+	    	
+	    	for(String server : servers){
+	    		Map<String, List<Integer>> serverData = dnsDelay.get(server);
+	    		Map<String, MeasureResult> pingData = pingDelay.get(server);
+	    		//NetProphetLogger.logDebugging("findBestDNSServer", "DNS server: "+server);
+	    		StringBuilder dnsDelayString = new StringBuilder();
+	    		StringBuilder pingDelayString = new StringBuilder();
+	    		dnsDelayString.append(server);
+	    		pingDelayString.append(server);
+	    		for(String host : hosts){
+	    			MeasureResult pingVal = pingData.get(host);
+	    			List<Integer> tmp = serverData.get(host);	
+	    			Collections.sort(tmp);
+	    			long dnsMedVal = tmp.get(tmp.size()/2);		
+	    			dnsDelayString.append(","+dnsMedVal);
+	    			pingDelayString.append(","+pingVal.avgDelay);
+	    			NetProphetLogger.logDebugging("storeDNSServerMeasureData", 
+	    					"  "+host+" : "+dnsMedVal+'/'+pingVal.avgDelay);
+	    		}
+	    		dnsWriter.println(dnsDelayString.toString());
+		    	pingWriter.println(pingDelayString.toString());
+	    	}
+	    	
+	    	dnsWriter.close();
+	    	pingWriter.close();
+	    	NetProphetLogger.logDebugging("storeDNSServerMeasureData", "finish logging measurement results");
+    	}
+    	catch(Exception e){
+    		NetProphetLogger.logError("storeDNSServerMeasureData", e.toString());
+    		e.printStackTrace();
+    		return false;
+    	}
+    	
+    	return true;
+    }
+    
+    private void findBestDNSServer(List<String> hostnames, Map<String, DNSServer> dnsServerMap){
+    	if(hostnames==null) {
+    		NetProphetLogger.logError("findBestDNSServer", "hostnames are empty");
+    		return;
+    	}
+
     	Map<String, Map<String, List<Integer>>> results = new HashMap<String, Map<String, List<Integer>>>();
     	Map<String, Map<String, MeasureResult>> hostPingResults = new HashMap<String, Map<String, MeasureResult>>();
     	PingTool pingTool = new PingTool();
     	try{
-	    	for(int i=0; i<5; i++){
+	    	for(int i=0; i<3; i++){
+	    		NetProphetLogger.logDebugging("findBestDNSServer", "start the "+i+" round");
 	    		for(DNSServer server : dnsServerMap.values()){
-	    			//logger.info("start testing :"+server);
+	    			NetProphetLogger.logDebugging("findBestDNSServer", "  start testing :"+server);		
 	    			Map<String, List<Integer>> serverData = results.get(server.name);
 	    			Map<String, MeasureResult> pingData = hostPingResults.get(server.name);
 	    			if (serverData == null){
@@ -708,15 +859,23 @@ public class NetProphetDns implements Dns {
 				        boolean isSucc = !(records == null);
 				        if (!isSucc) dnsDelay = 10000;
 				        NetProphetLogger.logDebugging("findBestDNSServer",
-				        		"  done DNS lookup "+hostname+" in "+dnsDelay +" ms" +" isSucc:"+isSucc);
+				        		"    done DNS lookup "+hostname+" in "+dnsDelay +" ms" +" isSucc:"+isSucc);
 				        if(records!=null && records.length >0 && pingData.get(hostname)==null){
 				        	ARecord ar = (ARecord)records[0];
-				        	NetProphetLogger.logDebugging("findBestDNSServer", 
-				        			"ping test: host:"+hostname+" ip:"+ar.getAddress().getHostAddress());
 				        	MeasureResult pingRS = pingTool.doPing(ar.getAddress().getHostAddress());
+				        	NetProphetLogger.logDebugging("findBestDNSServer", 
+				        			"    done ping testing: host:"+hostname+
+				        			" ip:"+pingRS.ip +
+				        			" delay:"+pingRS.avgDelay);
 				        	pingData.put(hostname, pingRS);
 				        }
-				        
+				        else if((records==null || records.length==0) && 
+				        		pingData.get(hostname)==null){
+				        	NetProphetLogger.logDebugging("findBestDNSServer", 
+				        			"    done ping testing: host:"+hostname+
+				        			" delay MAXIMUM");
+				        	pingData.put(hostname, pingTool.getFailedMeasureResult(hostname));
+				        }
 				        
 				        if(serverData.containsKey(hostname))
 				        	serverData.get(hostname).add((int)dnsDelay);
@@ -727,8 +886,10 @@ public class NetProphetDns implements Dns {
 				        }
 		    		}
 	    		}
-	    		logger.info("finish the "+i+" round");
+	    		NetProphetLogger.logDebugging("findBestDNSServer", "finish the "+i+" round");
 	    	}
+	    	storeDNSServerMeasureData("DNSMeasurement", results, hostPingResults);
+	    	/*
 	    	Set<String> servers = results.keySet();
 	    	for(String server : servers) {   		
 	    		Map<String, List<Integer>> serverData = results.get(server);
@@ -736,21 +897,17 @@ public class NetProphetDns implements Dns {
 	    		Set<String> hosts = serverData.keySet();
 	    		long val = 0;
 	    		StringBuilder sb = new StringBuilder();
+	    		NetProphetLogger.logDebugging("findBestDNSServer", "DNS server: "+server);
 	    		for(String host : hosts){
+	    			MeasureResult pingVal = pingData.get(host);
 	    			List<Integer> data = serverData.get(host);
-	    			Collections.sort(data);
-	    			val += data.get(data.size()/2);		
-	    			sb.append("  "+host+": ");
-	    			for(Integer v : data){
-	    				sb.append(v+" ");
-	    			}
-	    			sb.append("\n");
 	    			
+	    			Collections.sort(data);
+	    			long dnsMedVal = data.get(data.size()/2);		
+	    			NetProphetLogger.logDebugging("findBestDNSServer", 
+	    					"  "+host+" : "+dnsMedVal+'/'+pingVal.avgDelay);
 	    		}
-	    		val = val / hosts.size();
-	    		logger.info("DNS Server: "+server+" "+val+" ms");
-	    		logger.info(sb.toString());
-	    	}
+	    	}*/
     	}
     	catch(Exception e){
     		logger.severe("errpr in findBestDNSServer: "+e);
