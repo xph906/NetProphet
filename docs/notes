@@ -1,0 +1,44 @@
+1. Copy DNS measurement results:
+  adb shell "run-as com.zjulist.httpmeasurement cat files/DNSMeasurement_dns.txt" > dns.csv
+  adb shell "run-as com.zjulist.httpmeasurement cat files/DNSMeasurement_ping.txt" > ping.csv
+
+2. Copy database:
+  adb shell "run-as com.zjulist.httpmeasurement chmod 666 /data/data/com.zjulist.httpmeasurement/databases/NetProphet.db "
+  adb pull /data/data/com.zjulist.httpmeasurement/databases/NetProphet.db
+Or:
+  adb pull /sdcard/NetProphet_backup.db after clicking "Save"
+
+Only select requests whose prev_req_id = 0;
+    e.g., select * from HTTPRequestInfo where prev_req_id = 0;
+
+Two tables connect using req_id:
+    e.g., select * from HTTPRequestInfo, NetworkInfo where NetworkInfo.req_id = HTTPRequestInfo.req_id;
+  
+Do statistics on the following timing information (NOERROR):
+    1. HTTPRequestInfo.overall_delay
+    2. HTTPRequestInfo.dns_delay
+    3. HTTPRequestInfo.handshake_delay
+    4. HTTPRequestInfo.tls_delay
+    5. HTTPRequestInfo.server_delay
+    6. HTTPRequestInfo.ttfb_delay
+    7. HTTPRequestInfo.resp_trans_delay
+    8. NetworkInfo.net_type
+
+    1. HTTPRequestInfo.error_msg
+
+Do top 100 Alexa websites 5 times (wait for 5 mins for each round);
+Do top 100 Alexa Chinese websites 5 times;
+
+Four figures:
+    1. Top 100 Alexa websites using WIFI
+    2. Top 100 Alexa websites using CELLULAR Network
+    3. Top 100 Alexa Chinese websites WIFI
+    4. Top 100 Alexa Chinese websites CELLULAR network
+
+Statistics:
+    average timing information in each of the previous categories.
+
+Common Sqlite3 commands:
+	sqlite3: open DB
+	.tables : show all the tables;
+	.schema : show table structure;
