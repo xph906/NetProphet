@@ -179,7 +179,7 @@ public class RealCall implements Call {
 					- timingObj.getReqWriteEndTimeANP();
 			long respTransDelay = timingObj.getRespEndTimeANP()
 					- timingObj.getRespStartTimeANP();
-			
+			//System.err.println("Attention: url:"+url+" overall:"+overallDelay+" trans:"+respTransDelay);
 			// TODO: cache needs more testing
 			boolean useConnCache = timingObj.useConnCache();
 			boolean useDNSCache =  timingObj.useDNSCache();

@@ -20,8 +20,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
+import netprophet.NetProphetHTTPRequestInfoObject;
 import okhttp3.Request.RequestTimingANP;
 import okhttp3.Request.ResponseInfoANP;
+import okhttp3.internal.Internal.NetProphetLogger;
 import static okhttp3.internal.Internal.logger;
 
 
@@ -233,6 +235,56 @@ public interface Call {
 					rs = obj.getRespEndTimeANP();
 			}
 			return rs;
+		}
+		
+		public long getFirstResponseTransDelay(){
+			if(urlsANP==null || timingsANP==null)
+				return 0;
+			if (urlsANP.size()==0 || timingsANP.size()==0)
+				return 0;
+			Iterator<String> urlIter = urlsANP.iterator();
+			Iterator<RequestTimingANP> reqIter = timingsANP.iterator();
+			if (urlIter.hasNext()) {
+				String tmp = urlIter.next();
+				String[] methodAndURL = tmp.split(" ");
+				if (methodAndURL.length != 2){
+					NetProphetLogger.logError("getFirstTransDelay", "error in format of urlsANP: "+tmp);
+					return 0;
+				}
+				String url = methodAndURL[1];
+				String method = methodAndURL[0];
+				
+				RequestTimingANP timingObj = reqIter.next();
+				long respTransDelay = timingObj.getRespEndTimeANP()
+						- timingObj.getRespStartTimeANP();
+				
+				return respTransDelay;	
+			}
+			return 0;
+		}
+
+		public long getOverallDelay(){
+			if(urlsANP==null || timingsANP==null)
+				return 0;
+			if (urlsANP.size()==0 || timingsANP.size()==0)
+				return 0;
+			Iterator<String> urlIter = urlsANP.iterator();
+			Iterator<RequestTimingANP> reqIter = timingsANP.iterator();
+			if (urlIter.hasNext()) {
+				String tmp = urlIter.next();
+				String[] methodAndURL = tmp.split(" ");
+				if (methodAndURL.length != 2){
+					NetProphetLogger.logError("getFirstTransDelay", "error in format of urlsANP: "+tmp);
+					return 0;
+				}
+
+				RequestTimingANP timingObj = reqIter.next();
+				long respTransDelay = timingObj.getRespEndTimeANP()
+						- timingObj.getReqStartTimeANP();
+				
+				return respTransDelay;	
+			}
+			return 0;
 		}
 	}
 

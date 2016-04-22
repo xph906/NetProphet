@@ -1,13 +1,17 @@
 package samples;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -15,8 +19,11 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import netprophet.LocalBandwidthMeasureTool;
 import netprophet.NetProphet;
 import netprophet.NetProphetDebugObserver;
+import netprophet.NetProphetHTTPRequestInfoObject;
+import netprophet.NetProphetNetworkData;
 import netprophet.NetProphetPropertyManager;
 import netprophet.PingTool;
 import netprophet.PingTool.MeasureResult;
@@ -308,6 +315,67 @@ public class DebugMain {
 	    }
 	  }
 	
+	public void processJSONString(String str){
+		Gson gson = new Gson();
+		NetProphetHTTPRequestInfoObject[] reqRS = null;
+		NetProphetNetworkData[] netRS = null;
+		try{
+			reqRS = gson.fromJson(str, NetProphetHTTPRequestInfoObject[].class);
+			if(reqRS==null || reqRS.length==0 || reqRS[0].getUrl()==null){
+				reqRS = null;
+				netRS = gson.fromJson(str, NetProphetNetworkData[].class);
+			}
+		}
+		catch(Exception e){
+			System.err.println(e);
+		}
+		
+		//Now we have the objects.
+		if(reqRS != null){
+			System.out.println("length of reqRS: "+reqRS.length);
+			for(NetProphetHTTPRequestInfoObject obj : reqRS){
+				//do something here
+				System.out.println("  "+obj.getUrl()+" delay:"+obj.getOverallDelay());
+			}
+		}
+		else{
+			//System.out.println("length of reqRS: 0");
+		}
+		
+		if(netRS != null){
+			System.out.println("length of netRS: "+netRS.length);
+			for(NetProphetNetworkData obj : netRS){
+				//do something here
+				System.out.println("  networkType:"+obj.getNetworkType());
+			}
+		}
+		else{
+			//System.out.println("length of netRS: 0");
+		}
+	}
+	
+	public void testProcessingJSONString(String filename){
+		try {
+			FileInputStream fstream = new FileInputStream(filename);
+			BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+
+			String strLine;
+			LinkedList<String> jsonStrings = new LinkedList<String>();
+			while ((strLine = br.readLine()) != null)   {
+			  jsonStrings.add(strLine);
+			  // start to process JSON string.
+			  processJSONString(strLine);
+			}
+			System.out.println("handled "+jsonStrings.size()+" lines of strings");
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally{
+			
+		}
+		
+	}
+	
 	public static void main(String[] args) throws Exception {
 		String hostOregan = "garuda.cs.northwestern.edu";
 		String httpPort = "3000";
@@ -315,10 +383,12 @@ public class DebugMain {
 		//"http://52.11.26.222:3000/"
 		String oreganURL = "http://" + hostOregan + ':' + httpPort + '/';
 		String curDirPath = "/Users/xpan/Documents/projects/NetProphet/";
+		NetProphet.enableTestingMode();
 		NetProphet.initializeNetProphetDesktop(false);
 		OkHttpClient client = new OkHttpClient().newBuilder().build();
 		NetProphetDebugObserver debugger = new NetProphetDebugObserver(null);
-		debugger.debugTestingDNSServer(2,2,null);
+		//debugger.debugTestingDNSServer(2,2,null);
+		DebugMain main = new DebugMain();
 		
         /*PingTool pingTool = new PingTool();
 		
@@ -336,11 +406,17 @@ public class DebugMain {
 		*/
 		
 		//******
+		LocalBandwidthMeasureTool tool = LocalBandwidthMeasureTool.getInstance();
+		tool.startMeasuringTask(null);
+		/*DebugMain.getStringRequest("http://www.cnn.com/data/ocs/section/index.html:homepage4-zone-3/views/zones/common/zone-manager.html", client);
+		DebugMain.getStringRequest("https://www.douban.com", client);
+		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml", client);
+		DebugMain.getStringRequest("http://www.douban.com", client);
 		
-		//DebugMain.getStringRequest("http://www.cnn.com/data/ocs/section/index.html:homepage4-zone-3/views/zones/common/zone-manager.html", client);
-		//DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml", client);
-		//DebugMain.getStringRequest("http://www.douban.com", client);
-		//DebugMain.getStringRequest("http://cdn.iciba.com/news/word/2016-04-08.jpg", client);
+		DebugMain.getStringRequest("http://cdn.iciba.com/news/word/2016-04-08.jpg", client);
+		
+		DebugMain.getStringRequest("http://www.douban.com", client);
+		*/
 		/*
 		logger.log(Level.INFO, "Testing: OKHTTP default testing");
 		String url = "https://api.github.com/repos/square/okhttp/contributors";

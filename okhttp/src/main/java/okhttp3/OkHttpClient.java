@@ -34,9 +34,11 @@ import netprophet.NetProphetDns;
 import netprophet.NetProphetOptimizationTool;
 import netprophet.NetProphetOptimizationTool.OptimiztionInterceptor;
 import netprophet.NetProphetPropertyManager;
+import netprophet.NetProphetTestingDns;
 import netprophet.NetUtility;
 import android.content.Context;
 import okhttp3.internal.Internal;
+import okhttp3.internal.Internal.NetProphetLogger;
 import okhttp3.internal.InternalCache;
 import okhttp3.internal.RouteDatabase;
 import okhttp3.internal.Util;
@@ -157,14 +159,20 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   NetProphetOptimizationTool optimizationTool;
   static Context staticContext;
   static NetProphetDns netProphetDns = null;
+  static NetProphetTestingDns netProphetTestingDns = null;
   static NetUtility netUtility;
   
   
   
-  public static void initializeNetProphet(Context context, boolean enableOptimization){
+  public static void initializeNetProphet(Context context, 
+		  boolean enableOptimization,
+		  boolean enableTestingMode){
 	  NetUtility.getInstance(context, null);
 	  OkHttpClient.staticContext = context;
-	  if(enableOptimization){
+	  if(enableTestingMode){
+		  netProphetTestingDns = new NetProphetTestingDns();
+	  }
+	  else if(enableOptimization){
 		  netProphetDns = new NetProphetDns();
 	  }
 	  else{
@@ -174,20 +182,23 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   public static void disableLogger(){
 	  //logger.
   }
-  public static void initializeNetProphetDesktop(boolean enableOptimization){
+  public static void initializeNetProphetDesktop(boolean enableOptimization, boolean enableTestingMode){
 	  OkHttpClient.staticContext = null;
-	  if(enableOptimization){
+	  if(enableTestingMode){
+		  netProphetTestingDns = new NetProphetTestingDns();
+	  }
+	  else if(enableOptimization){
 		  netProphetDns = new NetProphetDns();
 	  }
 	  else{
 		  netProphetDns = null; //enable default DNS.
 	  }
   }
-  public static void initializeNetProphet(Context context, NetProphetDns  dns){
+  /*public static void initializeNetProphet(Context context, NetProphetDns  dns){
 	  NetUtility.getInstance(context, null);
 	  OkHttpClient.staticContext = context;
 	  netProphetDns = dns;
-  }
+  }*/
   public static NetProphetDns getNetProphetDns(){
 	  return netProphetDns;
   }
@@ -446,7 +457,12 @@ public void setContext(Context context) {
       authenticator = Authenticator.NONE;
       connectionPool = new ConnectionPool();
       /* NetProphet */
-      if(netProphetDns != null)
+      if (netProphetTestingDns != null){
+    	  dns = netProphetTestingDns;
+    	  NetProphetLogger.logDebugging("OkHttpClient.build", 
+    			  "using NetProphet Testing DNS");
+      }
+      else if(netProphetDns != null)
     	  dns = netProphetDns;
       else
     	  dns = Dns.SYSTEM;

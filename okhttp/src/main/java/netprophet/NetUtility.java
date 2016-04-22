@@ -63,12 +63,11 @@ public class NetUtility extends PhoneStateListener {
     public static NetUtility getInstance(Context cx, Handler handler){
     	if (mNetUtility==null){
     		mNetUtility = new NetUtility(cx, handler);
-    		logger.severe("ATTENTION: create new instance!!!");
     	}
     	return mNetUtility;
     }
     
-    public NetUtility(Context cx, Handler handler){
+    private NetUtility(Context cx, Handler handler){
         this.mContext = cx;
         this.mState = State.UNKNOWN;
         this.mListening = false;
@@ -102,6 +101,18 @@ public class NetUtility extends PhoneStateListener {
     }
     public String getNetworkingName() {
         return mName;
+    }
+    public String getNetworkingFullName(){
+    	return mType+'/'+mName;
+    }
+    public int getSignalStrength(){
+    	if(mType.equalsIgnoreCase("mobile")){
+    		return this.getCellSignalStrength();
+    	}
+    	else if(mType.equalsIgnoreCase("WIFI")){
+    		return this.getWIFISignalStrength();
+    	}
+    	return 0;
     }
 
     public enum CellularType {

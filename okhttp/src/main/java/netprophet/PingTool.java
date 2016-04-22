@@ -38,12 +38,15 @@ public class PingTool
 	
     List<String> commands;
     Pattern summaryPattern, dataPattern, icmpTimeoutPattern;
-    
     public PingTool(){
+    	this(5);
+    }
+    
+    public PingTool(int pingCount){
         commands = new ArrayList<String>();
         commands.add("ping");
         commands.add("-c");
-        commands.add("5");
+        commands.add(String.valueOf(pingCount));
         summaryPattern = Pattern.compile(
         		"[0-9]+ packets transmitted, [0-9]+ (packets )?received, ([0-9]+.[0-9]+)% packet loss");
         dataPattern = Pattern.compile(
