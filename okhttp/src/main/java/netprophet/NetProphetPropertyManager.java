@@ -49,8 +49,52 @@ public class NetProphetPropertyManager {
 	private int DBSyncPacketRecordSize;
 	private boolean enableOptimization;
 	private String connectionTestingURL;
+	private String bandwidthMeasureURL;
 	private String remotePostReportFullPath;
+	private boolean allowDBSync;
+	private boolean enableTestingMode;
+	private String bwMeasureURLPath;
+	private String bwMeasureURLPort;
 	
+	public String getBwMeasureURLPort() {
+		return bwMeasureURLPort;
+	}
+
+	public void setBwMeasureURLPort(String bwMeasureURLPort) {
+		this.bwMeasureURLPort = bwMeasureURLPort;
+	}
+
+	public String getBWMeasureURLPath() {
+		return bwMeasureURLPath;
+	}
+
+	public void setBWMeasureURLPath(String bwMeasureURLPath) {
+		this.bwMeasureURLPath = bwMeasureURLPath;
+	}
+
+	public String getBandwidthMeasureURL() {
+		return bandwidthMeasureURL;
+	}
+
+	public void setBandwidthMeasureURL(String bandwidthMeasureURL) {
+		this.bandwidthMeasureURL = bandwidthMeasureURL;
+	}
+	public boolean isEnableTestingMode() {
+		return enableTestingMode;
+	}
+
+	public void setEnableTestingMode(boolean enableTestingMode) {
+		this.enableTestingMode = enableTestingMode;
+	}
+
+	public boolean allowDBSync() {
+		return allowDBSync;
+	}
+
+	public void setAllowDBSync(boolean allowDBSync) {
+		this.allowDBSync = allowDBSync;
+	}
+
 	private NetProphetPropertyManager(){
 		try {
 			properties = properties(CONFIGURE_FILE_NAME);
@@ -67,6 +111,11 @@ public class NetProphetPropertyManager {
 			connectionTestingURL = properties.getProperty("ConnectionTestingURL");
 			remotePostReportFullPath = String.format("%s://%s:%s%s", 
 					serverScheme, serverHost, serverPort, remotePostReportPath);
+			allowDBSync = Boolean.valueOf(properties.getProperty("AllowDBSynchronization"));
+			enableTestingMode = false; //by default, it's disabled.
+			bandwidthMeasureURL = properties.getProperty("BandwidthMeasurementURL");
+			bwMeasureURLPath = properties.getProperty("BWMeasureURLPath");
+			bwMeasureURLPort = properties.getProperty("BWMeasureURLPort");
 			
 			dnsServerMap = new HashMap<String, DNSServer>();
 			try {

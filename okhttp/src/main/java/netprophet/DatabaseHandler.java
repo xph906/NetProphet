@@ -10,6 +10,10 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.os.SystemClock;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,7 +54,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private HashSet<Integer> postTags;
     private long syncStartingTime;
     private boolean isSyncThreadRunning;
-   
+    private Context context;
     public boolean isSyncThreadRunning() {
 		return isSyncThreadRunning;
 	}
@@ -67,6 +71,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     private DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this.context = context;
         send_lock = new ReentrantLock();
         tagSetLock = new ReentrantLock();
         postTags = null;
@@ -166,6 +171,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 		Vector arr = new Vector();
 		arr.addAll(objList);
 		String objStr = gson.toJson(arr);
+		System.err.println("GSONSTRING: "+objStr);
+		//DEBUG
+		File file  = new File(context.getFilesDir(), "debug_json_str.txt");
+		try {
+			PrintWriter writter = new PrintWriter(new FileOutputStream(file, true));
+			writter.println(objStr);
+			writter.close();
+		} catch (FileNotFoundException e) {
+			NetProphetLogger.logError("sendObjectsToRemoteDB", e.toString());
+			e.printStackTrace();
+		}	
+		//END DEBUG
+		
 		//addPostTag(objStr.hashCode());
 		taskManager.postTask(new PostCompressedCallInfoTask(objStr, propertyManager.getRemotePostReportURL(),this));
 		NetProphetLogger.logDebugging("sendObjectsToRemoteDB",

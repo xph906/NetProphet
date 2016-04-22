@@ -32,13 +32,25 @@ import static okhttp3.internal.Internal.logger;
 public class NetProphet {
 	private static NetProphet netProphet = null;
 	private static Context context = null;
+	private static boolean testingMode = false;
+	/*
+	 * This function has to be called before initializeNetProphet
+	 * Testing mode:
+	 *   1. DNS cache is disabled.
+	 */
+	public static void enableTestingMode(){
+		NetProphetLogger.logWarning("enableTestingMode", 
+				"WARNING: make sure this method being called before initializeNetProphet");
+		testingMode = true;
+	}
+	
 	/*
 	 * This function has been called in the beginning of application.
 	 */
 	public static void initializeNetProphet(Context context, boolean enableOptimization){
 		NetProphet.context = context;
 		NetProphet.getInstance();
-		OkHttpClient.initializeNetProphet(context, enableOptimization);
+		OkHttpClient.initializeNetProphet(context, enableOptimization, testingMode);
 		DatabaseHandler.getInstance(context);
 		NetUtility.getInstance(context, null);		
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
@@ -52,8 +64,10 @@ public class NetProphet {
 	public static void initializeNetProphetDesktop(boolean enableOptimization){
 		NetProphetPropertyManager manager = NetProphetPropertyManager.getInstance();
 		manager.setEnableOptimization(enableOptimization);
-		OkHttpClient.initializeNetProphetDesktop(enableOptimization);
+		OkHttpClient.initializeNetProphetDesktop(enableOptimization, testingMode);
 	}
+	
+
 
 	public static NetProphet getInstance(){
 		if(context == null)
@@ -143,14 +157,16 @@ public class NetProphet {
 			NetProphetLogger.logDebugging("networkingChanged", "networking changed to WIFI");
 			//TODO: make sure the WIFI works properly, then do DB synchronization
 			long reqCount = dbHandler.getRequestInfoCount();
-			if(reqCount >= propertyManager.getDBSyncLimit()){
+			if(reqCount>=propertyManager.getDBSyncLimit() && propertyManager.allowDBSync()){
 				NetProphetLogger.logDebugging("networkingChanged",
 						"start to synchronize DB :"+reqCount+" records");
 				dbHandler.synchronizeDatabase();
 			}
 			else{
 				NetProphetLogger.logDebugging("networkingChanged",
-						"too early to do DB synchronization because of "+reqCount+" records");
+						"too early to do DB synchronization because of 1. "+
+								reqCount+" records or/and allowDBSync:"+
+									propertyManager.allowDBSync());
 			}
 		}
 		else if(type==ConnectivityManager.TYPE_MOBILE ||
