@@ -390,6 +390,15 @@ public class DebugMain {
 		//debugger.debugTestingDNSServer(2,2,null);
 		DebugMain main = new DebugMain();
 		
+		String tmp = "3 packets transmitted, 0 packets received, 100.0% packet loss";
+		Pattern summaryPattern = Pattern.compile(
+        		"[0-9]+ packets transmitted, [0-9]+ (packets )?received, ([0-9]+(\\.[0-9]+)?)% packet loss");
+		if(summaryPattern.matcher(tmp).find()){
+			System.out.println("FOUND: YES");
+		}
+		else{
+			System.out.println("NOT FOUND: NO");
+		}
         /*PingTool pingTool = new PingTool();
 		
 		MeasureResult rs = pingTool.doPing("211.147.4.31");

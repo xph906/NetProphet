@@ -27,7 +27,7 @@ public class PingTool
 		}
 		public MeasureResult(String ip){
 			this.ip = ip;
-			this.lossRate = (float) 100.0;
+			this.lossRate = (float) 0.0;
 			this.avgDelay = (float) 1000.0;
 			this.stdDev = (float) 0.0;
 		}
@@ -47,8 +47,9 @@ public class PingTool
         commands.add("ping");
         commands.add("-c");
         commands.add(String.valueOf(pingCount));
+        //3 packets transmitted, 3 received, 0% packet loss, time 2002ms
         summaryPattern = Pattern.compile(
-        		"[0-9]+ packets transmitted, [0-9]+ (packets )?received, ([0-9]+.[0-9]+)% packet loss");
+        		"[0-9]+ packets transmitted, [0-9]+ (packets )?received, ([0-9]+(\\.[0-9]+)?)% packet loss");
         dataPattern = Pattern.compile(
         		"min/avg/max/[a-z]+dev = ([0-9]+.[0-9]+)/([0-9]+.[0-9]+)/([0-9]+.[0-9]+)/([0-9]+.[0-9]+) ms");
         icmpTimeoutPattern = Pattern.compile("Request timeout for icmp_seq");
@@ -113,7 +114,7 @@ public class PingTool
             	Matcher match = summaryPattern.matcher(s);
             	if(match.find()){
             		Float f = Float.valueOf(match.group(2));
-            		//NetProphetLogger.logDebugging("PingTool", "IP:"+ip+" lossrate:"+f+"%");
+            		//NetProphetLogger.logDebugging("PingTool", "  IP:"+ip+" lossrate:"+f+"%");
             		result.lossRate = f;
             		continue;
             	}
@@ -121,14 +122,14 @@ public class PingTool
             	if(match.find()){
             		Float avg = Float.valueOf(match.group(2));
             		Float stddev = Float.valueOf(match.group(4));
-            		//NetProphetLogger.logDebugging("PingTool", "IP:"+ip+" avg:"+avg+"ms "+"stddev:"+stddev);
+            		//NetProphetLogger.logDebugging("PingTool", "  IP:"+ip+" avg:"+avg+"ms "+"stddev:"+stddev);
             		result.avgDelay = avg;
             		result.stdDev = stddev;
             		doTCPPing = false;
             		break;
             	}    	
             }
-            
+            //NetProphetLogger.logDebugging("PingTool", "  result:"+result.toString());
             /*while (!doTCPPing && (s = stdError.readLine()) != null)
             {
             	NetProphetLogger.logError("PingTool", s);
@@ -137,6 +138,7 @@ public class PingTool
         }
         catch(Exception e){
         	NetProphetLogger.logError("PingTool", e.toString());
+        	e.printStackTrace();
         }
         finally{
             commands.remove(commands.size()-1);
