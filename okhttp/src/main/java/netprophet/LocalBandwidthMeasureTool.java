@@ -10,6 +10,8 @@ import java.util.logging.Level;
 
 import netprophet.PingTool.MeasureResult;
 import android.R.array;
+import android.os.Handler;
+import android.os.Message;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -29,12 +31,15 @@ public class LocalBandwidthMeasureTool {
 			localBandwidthMeasureTool = new LocalBandwidthMeasureTool();
 		return localBandwidthMeasureTool;
 	}
-	
+
 	private Map<String, Float> bandwidthCache;
 	private boolean isRunning;
+	private Handler handler;
+	
 	private LocalBandwidthMeasureTool(){
 		bandwidthCache = new HashMap<String, Float>();	
 		isRunning = false;
+		handler = null;
 	}
 	
 	public void startMeasuringTask(NetUtility netUtility){
@@ -44,6 +49,7 @@ public class LocalBandwidthMeasureTool {
 		if (isRunning){
 			NetProphetLogger.logDebugging("startMeasuringTask", 
 					"Measuring task is running");
+			postMsg("Measuring task is still running");
 			return;
 		}
 		
@@ -52,6 +58,7 @@ public class LocalBandwidthMeasureTool {
 			if(bandwidthCache.containsKey(networkName)){
 				NetProphetLogger.logDebugging("startMeasuringTask", 
 						"this network's bandwidth has been tested");
+				postMsg("This network's bandwidth has been measured");
 				return;
 			}
 			signalStrength = netUtility.getSignalStrength();
@@ -60,6 +67,30 @@ public class LocalBandwidthMeasureTool {
 		MeasureLocalBandwidthTask task = 
 				new MeasureLocalBandwidthTask(networkName, networkType, signalStrength);
 		task.start();
+	}
+	
+	private void postMsg(String content){
+		if(handler != null){
+			try{
+				Message msg = new Message();
+				msg.what = InternalConst.MSGType.NETINFO_MSG;
+				msg.obj = content;
+				handler.sendMessage(msg);
+			}
+			catch(Exception e){
+				NetProphetLogger.logError("LocalBandwidthMeasureTool", 
+						"postMsg error: "+e.toString());
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public Handler getHandler() {
+		return handler;
+	}
+
+	public void setHandler(Handler handler) {
+		this.handler = handler;
 	}
 	
 	public boolean isRunning(){
@@ -115,11 +146,13 @@ public class LocalBandwidthMeasureTool {
 				Gson gson = new GsonBuilder().create();
 				String jsonObj = gson.toJson(data);
 				
+				postMsg("start running bandwidth testing...");
 				// ask server for measurement permission.
 				BandwidthResponse rs = sendCMDRequest("ask-permission", jsonObj);
 				if (!rs.result){
 					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
 							"not allowed to do MeasureLocalBandwidthTask");
+					postMsg("Error: bw measuring task is not allowed");
 					return ;
 				}
 				
@@ -128,6 +161,7 @@ public class LocalBandwidthMeasureTool {
 				if(!rs.result){
 					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
 							"failed to load bw measurement server list: "+rs.err_msg);
+					postMsg("Error: failed to load bw measurement server list");
 					return ;
 				}
 				gson = new Gson();
@@ -135,6 +169,7 @@ public class LocalBandwidthMeasureTool {
 				if(serverList==null || serverList.length==0){
 					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
 							"bw measurement server list is empty ");
+					postMsg("Error: failed to load bw measurement server list");
 					return ;
 				}
 				// find the nearest server.
@@ -145,12 +180,12 @@ public class LocalBandwidthMeasureTool {
 					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
 							"ping testing server:"+server);
 					MeasureResult mrs = pingTool.doPing(server);
-					if(mrs.lossRate != 0.0)
-						continue;
-					if(mrs.avgDelay < minVal){
+					if(mrs.lossRate==0.0 && mrs.avgDelay<minVal){
 						minVal = mrs.avgDelay;
 						nearestServer = server;
 					}
+					postMsg("ping server: "+server);
+					postMsg("  avg delay: "+mrs.avgDelay+" ms");
 				}
 				if(nearestServer.equals("")){
 					NetProphetLogger.logWarning("MeasureLocalBandwidthTask", 
@@ -160,19 +195,21 @@ public class LocalBandwidthMeasureTool {
 				}
 				NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
 						"nearest server: "+ nearestServer+" delay: "+minVal);
+				postMsg("nearest server: "+ nearestServer+" delay: "+minVal);
 				
 				// do measurement task.
 				long[] bws = new long[5];
 				for(int i=0; i<5; i++){
 					bws[i] = sendMeasureRequest(nearestServer);
-					System.out.println("VAL: "+bws[i] );
+					//System.out.println("VAL: "+bws[i] );
 				}
 				Arrays.sort(bws);
 				NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
 						"Final Delay:"+bws[2]+"KBits");
 				
-				
+				postMsg("measured bandwidth:"+bws[2]+" KBits");
 				// post results to remote server.
+				postMsg("bw measurement finished");
 			}
 			catch(Exception e){
 				NetProphetLogger.logError("MeasureLocalBandwidthTask", e.toString());
@@ -204,10 +241,13 @@ public class LocalBandwidthMeasureTool {
 						"sendMeasureRequest: "+
 						" transDelay:"+transDelay+" overallDelay:"+overallDelay);
 				
-				return (int)((float)size / (float)(transDelay) );
+				int rs = (int)((float)size / (float)(transDelay) );
+				postMsg("  size:"+size+" delay:"+transDelay);
+				return rs;
 			} 
 			catch (IOException e) {
 				NetProphetLogger.logError("MeasureLocalBandwidthTask.sendMeasureRequest", e.toString());
+				postMsg("Error: "+e.toString());
 				e.printStackTrace();
 			}
 			return 0;

@@ -98,7 +98,6 @@ public class NetProphetTestingDns implements Dns {
     private List<InetAddress> synchronousLookup(String hostname){
         try {
         	if(IPPATTERN.matcher(hostname).matches()){
-        		System.err.println("hostname is an IP");
         		return Arrays.asList(InetAddress.getAllByName(hostname));
         	}
             hostname = hostname.trim().toLowerCase();
