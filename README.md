@@ -37,7 +37,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
     
     More usage can be found via this link: https://github.com/square/okhttp/wiki/Recipes
 
-* Read response:__
+* Read response:<\br>
     Non-streaming approach: this approach is convenient, but all contents will be read into memory, so it’s ideal for data less than 1MB.
 ```
       Plaintext:
@@ -47,6 +47,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
       Other binary:
         not supported for non-streaming approach.
 ```
+
     Streaming approach: this approach will read contents as a stream, but it requires developer to explicitly inform NetProphet the end of the stream.
 ```
       Plaintext:
