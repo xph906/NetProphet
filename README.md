@@ -4,7 +4,7 @@ NetProphet is a library supporting networking delay diagnosis and optimization. 
 In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP Handshake delay, 3. TLS handshake delay, 4. Request Upload delay, 5. Time-to-first-byte (TTFB) delay, 6. Server delay (a part of TTFB delay) and 7. Response Transmission delay. The delay information will be cached onto app and uploaded to server: http://netprophet.xcdu.me/ when the number of requests have achieved a threshold when user is on WIFI.
 
 ##Usage:
-1. Add the jar file okhttp/target/okhttp-3.1.0-SNAPSHOT.jar into your project:
+* Add the jar file okhttp/target/okhttp-3.1.0-SNAPSHOT.jar into your project:
 ```
     cp libs/okhttp-3.1.0-SNAPSHOT.jar <app-directory>/app/libs/
     cp libs/dnsjava-2.1.7.jar <app-directory>/app/libs/
@@ -12,13 +12,13 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
 	Also, guarantee the app has the following permissions:
     INTERNET, ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, ACCESS_WIFI_STATE, ACCESS_NETWORK_STATE, READ_PHONE_STATE
 
-2. Initialization: In the beginning of the application (onCreate(…) method), add the following line of code:
+* Initialization: In the beginning of the application (onCreate(…) method), add the following line of code:
 ```
     //The second argument indicates no optimization. 
     //Optimization progress is still ongoing.
     NetProphet.initializeNetProphet(getApplicationContext(), false); 
 ```
-3. Build and send request: NetProphet keeps all the usage of okhttp3.
+* Build and send request: NetProphet keeps all the usage of okhttp3.
 ```
     For example, send a synchronous GET request:
       Request request = new Request.Builder()
