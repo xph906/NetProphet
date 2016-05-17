@@ -37,7 +37,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
     
     More usage can be found via this link: https://github.com/square/okhttp/wiki/Recipes
 
-4. Read response:__
+* Read response:__
     Non-streaming approach: this approach is convenient, but all contents will be read into memory, so it’s ideal for data less than 1MB.
 ```
       Plaintext:
