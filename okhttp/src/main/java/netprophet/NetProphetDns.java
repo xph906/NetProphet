@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.Cache;
@@ -62,6 +64,9 @@ public class NetProphetDns implements Dns {
     final static private int LongTimeoutItemThreshold = 3;
     final static private int UpdateDNSTimeoutThreshold = 20;
     final static private int DNSTestingHostNumber = 10;
+    final static private Pattern IPPATTERN = Pattern.compile(
+            "^(([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.){3}([01]?\\d\\d?|2[0-4]\\d|25[0-5])$");
+    
     //put this in the configure file.
     final static private boolean EnableSecondLevelCache = true;
 
@@ -80,6 +85,10 @@ public class NetProphetDns implements Dns {
      */
     public List<InetAddress> lookup(String hostname) throws UnknownHostException
     {
+    	if(IPPATTERN.matcher(hostname).matches()){
+    		return Arrays.asList(InetAddress.getAllByName(hostname));
+    	}
+    	
         List<InetAddress> cachedRecordList = new ArrayList<InetAddress>();
         StringBuilder errorMsg = new StringBuilder();
         if(searchSystemDNSCache(hostname,cachedRecordList, errorMsg)){

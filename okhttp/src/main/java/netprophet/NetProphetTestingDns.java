@@ -69,9 +69,10 @@ public class NetProphetTestingDns implements Dns {
 
     private int dnsTimeout;
     private String dnsServer;
-    private Resolver resolver, resolverWithLongTimeout ;
-    private Map<Name, Set<Name>> host2DNSName;
-    private boolean enableSecondLevelCache;
+    private Resolver resolver ;
+    private String defaultBackupDNSServer;
+    private boolean useBackupDNSServer;
+
     ExecutorService executor;
     ExecutorService listOperationExecutor;
     
@@ -93,10 +94,15 @@ public class NetProphetTestingDns implements Dns {
         dnsTimeout = 10; //default: 10 s
         
         resolver = null;
+        
+        defaultBackupDNSServer = "8.8.8.8";
+        useBackupDNSServer = false;
     }
  
     private List<InetAddress> synchronousLookup(String hostname){
         try {
+        	NetProphetLogger.logDebugging("synchronousLookup",
+            		"start DNS lookup "+hostname);
         	if(IPPATTERN.matcher(hostname).matches()){
         		return Arrays.asList(InetAddress.getAllByName(hostname));
         	}
@@ -108,11 +114,19 @@ public class NetProphetTestingDns implements Dns {
             long dnsStartTimeout = System.currentTimeMillis();
             Record[] records = lookup.run();
             long dnsDelay = System.currentTimeMillis() - dnsStartTimeout;
-            NetProphetLogger.logDebugging("synchronousLookup",
-            		"done DNS lookup "+hostname+" in "+dnsDelay +" ms");
-
-            if(records == null)
+            
+            
+            if(records == null){
+            	NetProphetLogger.logDebugging("synchronousLookup",
+                		"done DNS lookup "+hostname+" in "+dnsDelay +
+                		" records is null");
             	return new ArrayList<InetAddress>();
+            }
+            else{
+            	 NetProphetLogger.logDebugging("synchronousLookup",
+                 		"done DNS lookup "+hostname+" in "+dnsDelay +" ms"+
+            			 " rs-size:"+records.length);
+            }
             // Update the cache.
             ArrayList<InetAddress> rs = new ArrayList<InetAddress>(records.length);
             for (Record record : records){
@@ -128,7 +142,24 @@ public class NetProphetTestingDns implements Dns {
         }
     }
 
-
+    private List<String> getLocalDNSAddress(){
+        try {
+            Class<?> SystemProperties = Class.forName("android.os.SystemProperties");
+            Method method = SystemProperties.getMethod("get", new Class[]{String.class});
+            ArrayList<String> servers = new ArrayList<String>();
+            for (String name : new String[]{"net.dns1", "net.dns2", "net.dns3", "net.dns4",}) {
+                String value = (String) method.invoke(null, name);
+                if (value != null && !"".equals(value) && !servers.contains(value))
+                    servers.add(value);
+            }
+            return servers;
+        }
+        catch(Exception e){
+            //NetProphetLogger.logError("getLocalDNSAddress", e.toString());
+            //e.printStackTrace();
+        }
+        return new ArrayList<String>();
+    }
 
     /*
      * Create a resolver.
@@ -137,12 +168,21 @@ public class NetProphetTestingDns implements Dns {
      * */
     private Resolver createNewResolverBasedOnDnsServer(){
         try{
-            Resolver resolver = null;
-            if (dnsServer == null)
-                resolver = new SimpleResolver();
+        	SimpleResolver resolver = null;
+            if (dnsServer == null){
+            	List<String> servers = getLocalDNSAddress();
+        		if(servers.size() > 0)
+        			resolver = new SimpleResolver(servers.get(0));
+        		else{
+        			resolver = new SimpleResolver(defaultBackupDNSServer);
+        			useBackupDNSServer = true;
+        		}
+            }
             else
                 resolver = new SimpleResolver(dnsServer);
             resolver.setTimeout(dnsTimeout);
+            NetProphetLogger.logDebugging("createNewResolverBasedOnDnsServer", 
+            		"DNS server: "+resolver.getAddress().getHostString());
             return resolver;
         }
         catch(Exception e){

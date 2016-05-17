@@ -1,17 +1,64 @@
-Usage:
-  Permission: 
-/*
- *  android.permission.INTERNET
- *  android.permission.ACCESS_COARSE_LOCATION
- *  android.permission.ACCESS_FINE_LOCATION
- *  android.permission.ACCESS_WIFI_STATE
- *  android.permission.ACCESS_NETWORK_STATE
- *  android.permission.READ_PHONE_STATE
- *  android.permission.GET_TASKS
- * */
-  Initialization:
-    OkHttpClient.initializeNetProphet(getApplicationContext());
+NetProphet is a library supporting networking delay diagnosis and optimization. We will provide customized packages for different HTTP libraries, minimizing the deployment burden of developers. This package is for okhttp3, so it’s backward compatible to okhttp functionalities.
 
+In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP Handshake delay, 3. TLS handshake delay, 4. Request Upload delay, 5. Time-to-first-byte (TTFB) delay, 6. Server delay (a part of TTFB delay) and 7. Response Transmission delay. The delay information will be cached onto app and uploaded to server: http://netprophet.xcdu.me/ when the number of requests have achieved a threshold when user is on WIFI.
+
+Usage:
+1. Add the jar file okhttp/target/okhttp-3.1.0-SNAPSHOT.jar into your project:
+    cp libs/okhttp-3.1.0-SNAPSHOT.jar <app-directory>/app/libs/
+    cp libs/dnsjava-2.1.7.jar <app-directory>/app/libs/
+   Guarantee the app has the following permissions:
+    android.permission.INTERNET
+    android.permission.ACCESS_COARSE_LOCATION
+    android.permission.ACCESS_FINE_LOCATION
+    android.permission.ACCESS_WIFI_STATE
+    android.permission.ACCESS_NETWORK_STATE
+    android.permission.READ_PHONE_STATE
+
+2. Initialization: In the beginning of the application (onCreate(…) method), add the following line of code:
+    //The second argument indicates no optimization. 
+    //Optimization progress is still ongoing.
+    NetProphet.initializeNetProphet(getApplicationContext(), false); 
+
+3. Build and send request: NetProphet keeps all the usage of okhttp3.
+    For example, send a synchronous GET request:
+      Request request = new Request.Builder()
+        .url("http://publicobject.com/helloworld.txt”)
+        .build();
+      Response response = client.newCall(request).execute();
+
+    Send a POST request:
+      RequestBody body = RequestBody.create(JSON, json);
+      Request request = new Request.Builder()
+        .url(url)
+        .post(body)
+        .build();
+      Response response = client.newCall(request).execute();
+    
+    More usage can be found via this link: https://github.com/square/okhttp/wiki/Recipes
+
+4. Read response:
+    Non-streaming approach: this approach is convenient, but all contents will be read into memory, so it’s ideal for data less than 1MB.
+      Plaintext:
+        String contents = response.body().string();
+      Image:
+        Bitmap map = response.body().bitmap();
+      Other binary:
+        not supported for non-streaming approach.
+     
+    Streaming approach: this approach will read contents as a stream, but it requires developer to explicitly inform NetProphet the end of the stream.
+      Plaintext:
+        InputStream is = response.body().charStream();
+      Binary:
+          InputStream is = response.body().byteStream();
+      
+      Note: in order to tell NetProphet the ending time of reading streaming contents, please inform the end of the stream by calling the followinc function when it's done:
+        response.body().informFinishedReadingResponse(int respSize, String errorMsg, int respEndTime );
+        Arguments:
+          respSize is the size of the contents;
+          errorMsg: if the call triggers an Exception, developer can specify the error msg; By default, errorMsg is set as null;
+          respEndTime: the end timestamp. By default, this value is set as null, so NetProphet will automatically use current timestamp as the ending time.
+
+Development:
 When importing NetPropohet, dnsjava is required
 
 Steps to import into Eclipse
@@ -34,33 +81,5 @@ Steps to import into Eclipse
   5. Install Maven plugin in Eclipse.
   6. Import the project as Maven project (Import -> Maven).
   7. Window -> Preferences -> Maven -> Errors/Warnings -> Plugin execution not covered by lifecycle configuration = Warning.
-
-
-Code:
-  All added/modified codes in OKHTTP should be within /*NetProphet*/ /* End NetProphet */
-  All added files should be in package netprophet. (okhttp/src/main/java/netprophet/)
-
-Debugging:
-  1. import static okhttp3.internal.Internal.logger;
-  2. logger.log(Level.INFO, "some strings");
-
-Testing and Packaging:
-  1. samples/DegugMain.java has main function to drive OkHTTP in desktop
-  2. Make sure it passes OkHTTP's testing (do: mvn clean package), everytime makes a change.  ***
-     Note that it will fail the testing if you enable logger, so close or comment logging statements before packaging. 
-  3. After finishing "mvn clean package", copy the jar file (okhttp/target/okhttp-3.1.0-SNAPSHOT.jar) to Android Studio.
-
-
-
-BUG:
-  1.W/System.err: Callback failure for call to http://www.bing.com/... 
-    https://www.reddit.com/... 
-    http://www.cnet.com/...
-    http://www.adf.ly/...
-    *http://www.gamersky.com/....
-    *http://www.mydrivers.com/...
-  2. Error inserting server_delay=-1 is_failed_req=1 tls_delay=0 use_resp_cache=0 ttfb_delay=0 trans_id=0 prev_req_id=0 req_size=0 http_code=0 dns_delay=7 next_req_id=0 req_id=1454640388031 user_id=357143045760714 detailed_error_msg=okhttp3.internal.http.RouteException: java.net.SocketTimeoutException: failed to connect to www.google.it/216.58.221.227 (port 443) after 10000ms conn_delay=-1454640550985 use_dns_cache=0 resp_trans_delay=0 resp_size=0 use_conn_cache=0 overall_delay=-1454640550978 error_msg=CONN_ERR url=https://www.google.it/?gws_rd=ssl req_write_delay=0 handshake_delay=0 end_time=0 start_time=1454640550978 method=GET trans_type=0
-  E/SQLiteDatabase: android.database.sqlite.SQLiteConstraintException: PRIMARY KEY must be unique (code 19)
-
 
 

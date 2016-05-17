@@ -415,10 +415,11 @@ public class DebugMain {
 		*/
 		
 		//******
-		LocalBandwidthMeasureTool tool = LocalBandwidthMeasureTool.getInstance();
-		tool.startMeasuringTask(null);
-		/*DebugMain.getStringRequest("http://www.cnn.com/data/ocs/section/index.html:homepage4-zone-3/views/zones/common/zone-manager.html", client);
-		DebugMain.getStringRequest("https://www.douban.com", client);
+		//LocalBandwidthMeasureTool tool = LocalBandwidthMeasureTool.getInstance();
+		//tool.startMeasuringTask(null);
+		DebugMain.getStringRequest("https://m.douban.com/group/cdzufang", client);
+		DebugMain.getStringRequest("http://www.bbc.com/news/world-asia-china-36207972", client);
+		/*DebugMain.getStringRequest("https://www.douban.com", client);
 		DebugMain.getStringRequest("http://news.sina.com.cn/o/2016-03-21/doc-ifxqnnkr9762064.shtml", client);
 		DebugMain.getStringRequest("http://www.douban.com", client);
 		

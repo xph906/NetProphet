@@ -10,8 +10,10 @@ import java.util.logging.Level;
 
 import netprophet.PingTool.MeasureResult;
 import android.R.array;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
+import android.telephony.TelephonyManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -35,17 +37,26 @@ public class LocalBandwidthMeasureTool {
 	private Map<String, Float> bandwidthCache;
 	private boolean isRunning;
 	private Handler handler;
+	private NetUtility netUtility;
+	private String phoneModel;
 	
 	private LocalBandwidthMeasureTool(){
 		bandwidthCache = new HashMap<String, Float>();	
 		isRunning = false;
 		handler = null;
+		try{
+			phoneModel = android.os.Build.MODEL;
+		}
+		catch(Exception e){
+			phoneModel = null;
+		}
 	}
 	
 	public void startMeasuringTask(NetUtility netUtility){
 		String networkName = null;
 		String networkType = null;
 		int signalStrength = 0;
+		this.netUtility = netUtility;
 		if (isRunning){
 			NetProphetLogger.logDebugging("startMeasuringTask", 
 					"Measuring task is running");
@@ -55,6 +66,7 @@ public class LocalBandwidthMeasureTool {
 		
 		if(netUtility != null){
 			networkName = netUtility.getNetworkingFullName();
+			networkType = netUtility.getNetworkingType();
 			if(bandwidthCache.containsKey(networkName)){
 				NetProphetLogger.logDebugging("startMeasuringTask", 
 						"this network's bandwidth has been tested");
@@ -97,16 +109,46 @@ public class LocalBandwidthMeasureTool {
 		return isRunning;
 	}
 	
-	public class BandwidthEnvironmentData{
+	public class BandwidthTransmissionData{
 		public String networkName;
 		public String networkType;
 		public int signalStrength;
-		public BandwidthEnvironmentData(String name, String type, int sig){
+		public String userID;
+		public String phoneModel;
+		
+		public int bandwidth;      //KBits, -1 means bad networking condition.
+		public int serverPingVal;  //ms, -1 means not found good server
+		public String server;      //can be null if cannot find good server.		
+		public BandwidthTransmissionData(String name, String type, int sig, String userID, String phoneModel){
 			this.networkName = name;
 			this.networkType = type;
 			this.signalStrength = sig;
+			this.userID = userID;
+			this.phoneModel = phoneModel;
+			
+			this.bandwidth = 0;
+			this.serverPingVal = 0;
+			this.server = null;
+		}
+		
+		public void setMeasurementResult(int bandwidth, int pingVal, String server){
+			this.bandwidth = bandwidth;
+			this.serverPingVal = pingVal;
+			this.server = server;
+		}
+		
+		//verify the networking parameters not changed
+		public boolean verifyNetworkingCondition(String netName, String netType, int sig){
+			if(!this.networkName.equals(netName) )
+				return false;
+			if(!this.networkType.equals(netType) )
+				return false;
+			if(this.signalStrength != sig)
+				return false;
+			return true;
 		}
 	}
+	
 	public class BandwidthResponse{
 		public boolean result;
 		public String err_msg;
@@ -141,13 +183,38 @@ public class LocalBandwidthMeasureTool {
 		public void run() {
 			try{
 				isRunning = true;
-				BandwidthEnvironmentData data = new BandwidthEnvironmentData(
-						this.networkName, this.networkType, this.signalStrength);
+				String userID = "non-android-user";
+				try{
+					Context context = NetProphet.getInstance().getContext();
+					if(context != null){
+						TelephonyManager mTelephony = 
+								(TelephonyManager) (context.getSystemService(Context.TELEPHONY_SERVICE)); 
+						userID = mTelephony.getDeviceId(); 
+					}
+				}
+				catch(Exception e){
+					NetProphetLogger.logError("MeasureLocalBandwidthTask",
+							"failed to acquire userID: "+e.toString());
+				}
+				
+				BandwidthTransmissionData data = null;
+				
+				if(netUtility != null){
+					data = new BandwidthTransmissionData(
+							netUtility.getNetworkingFullName(),
+							netUtility.getNetworkingType(),
+							netUtility.getSignalStrength(),
+							userID,phoneModel);
+				}
+				else{
+					data = new BandwidthTransmissionData(
+						this.networkName, this.networkType, this.signalStrength, userID,phoneModel);
+				}
 				Gson gson = new GsonBuilder().create();
 				String jsonObj = gson.toJson(data);
 				
-				postMsg("start running bandwidth testing...");
-				// ask server for measurement permission.
+				postMsg("Start running bandwidth testing...");
+				// 1. ask server for measurement permission.
 				BandwidthResponse rs = sendCMDRequest("ask-permission", jsonObj);
 				if (!rs.result){
 					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
@@ -156,7 +223,7 @@ public class LocalBandwidthMeasureTool {
 					return ;
 				}
 				
-				// pull a list of testing servers.
+				// 2. pull a list of testing servers.
 				rs = sendCMDRequest("query-server-list", jsonObj);
 				if(!rs.result){
 					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
@@ -172,44 +239,87 @@ public class LocalBandwidthMeasureTool {
 					postMsg("Error: failed to load bw measurement server list");
 					return ;
 				}
-				// find the nearest server.
+				// 3. find the nearest server.
+				postMsg("Start finding the nearest testing server...");
 				PingTool pingTool = new PingTool(3);
 				float minVal = 1000;
 				String nearestServer = "";
 				for(String server : serverList){
 					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
-							"ping testing server:"+server);
+							"  Start ping testing server: "+server);
+					postMsg("    Start ping testing server: "+server);
 					MeasureResult mrs = pingTool.doPing(server);
 					if(mrs.lossRate==0.0 && mrs.avgDelay<minVal){
 						minVal = mrs.avgDelay;
 						nearestServer = server;
 					}
-					postMsg("ping server: "+server);
-					postMsg("  avg delay: "+mrs.avgDelay+" ms");
+					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
+							"   Ping delay: "+mrs.avgDelay+" ms");
+					postMsg("        Ping delay: "+mrs.avgDelay+" ms");
 				}
 				if(nearestServer.equals("")){
 					NetProphetLogger.logWarning("MeasureLocalBandwidthTask", 
 							"networking signal is bad or all servers are down ");
-					//TODO: paerhasp using such information
+					data.setMeasurementResult(-1, -1, null);
+					gson = new GsonBuilder().create();
+					jsonObj = gson.toJson(data);		
+					rs = sendCMDRequest("post-result", jsonObj);
 					return ;
 				}
 				NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
 						"nearest server: "+ nearestServer+" delay: "+minVal);
-				postMsg("nearest server: "+ nearestServer+" delay: "+minVal);
-				
-				// do measurement task.
-				long[] bws = new long[5];
-				for(int i=0; i<5; i++){
+				postMsg("Choose server: "+ nearestServer+" as testing server. Avg delay: "+minVal+" ms.");
+				postMsg("Start sending/receving packets...");
+				// 4. do measurement task.
+				long[] bws = new long[10];
+				long bw = 0;
+				for(int i=0; i<10; i++){
 					bws[i] = sendMeasureRequest(nearestServer);
+					bw = selectStableBW(bws, i+1, 5);
+					if( bw != 0) break;
 					//System.out.println("VAL: "+bws[i] );
 				}
 				Arrays.sort(bws);
+				if(bw == 0)
+					bw = bws[2];
 				NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
-						"Final Delay:"+bws[2]+"KBits");
+						"Final Delay:"+bw+"KBits");
 				
-				postMsg("measured bandwidth:"+bws[2]+" KBits");
+				postMsg("Measured bandwidth is:"+bw+" KBits");
 				// post results to remote server.
-				postMsg("bw measurement finished");
+				
+				try{
+					if(netUtility != null){
+						if(!data.verifyNetworkingCondition(
+								netUtility.getNetworkingFullName(), 
+								netUtility.getNetworkingType(), 
+								netUtility.getSignalStrength())){
+							NetProphetLogger.logError("MeasureLocalBandwidthTask", 
+									"do not post measurement result to server because of networking state changed");
+							return ;
+						}
+					}
+				}
+				catch(Exception e){
+					NetProphetLogger.logError("MeasureLocalBandwidthTask", 
+						"failed in verifying networking state");
+				}
+				data.setMeasurementResult((int)bws[2], (int)minVal, nearestServer);
+				gson = new GsonBuilder().create();
+				jsonObj = gson.toJson(data);		
+				rs = sendCMDRequest("post-result", jsonObj);
+				
+				if(rs.result){
+					NetProphetLogger.logDebugging("MeasureLocalBandwidthTask", 
+						"succeeded posting measurement result to server: ");
+					postMsg("Bandwidth results have been sent to server.");
+				}
+				else{
+					NetProphetLogger.logError("MeasureLocalBandwidthTask", 
+							"failed to post measurement result to server: "+rs.err_msg);
+					postMsg("Failed to send bandwidth results to server:"+rs.err_msg);
+				}
+				
 			}
 			catch(Exception e){
 				NetProphetLogger.logError("MeasureLocalBandwidthTask", e.toString());
@@ -218,7 +328,33 @@ public class LocalBandwidthMeasureTool {
 			finally{
 				isRunning = false;
 			}
+			postMsg("Bandwidth measurement task is finished.");
 		}
+		
+		private long selectStableBW(long[] bws, int size, int window){
+			if(size < window)
+				return 0;
+			long[] newbws = new long[window];
+			for(int i=0; i<window; i++)
+				newbws[i] = bws[size-window+i];
+			Arrays.sort(newbws);
+			long sum = 0;
+			long medium = newbws[window/2];
+			for(int i=0; i<window; i++)
+				sum += (newbws[i]-medium) * (newbws[i]-medium);
+			double sqrt = Math.sqrt(sum/window);
+			StringBuilder sb = new StringBuilder();
+			for(int i=0; i<window; i++){
+				sb.append("  "+newbws[i]);
+			}
+			double cv = sqrt/(double)medium;
+			sb.append(" std varience:"+sqrt+" coefficient varience:"+cv);
+			NetProphetLogger.logError("selectStableBW", sb.toString());
+			if(cv < 0.1)
+				return medium;
+			return 0;
+		}
+		
 		private int sendMeasureRequest(String server) throws Exception {
 			OkHttpClient client = new OkHttpClient();
 			String url = String.format("http://%s:%s%s", 
@@ -242,7 +378,7 @@ public class LocalBandwidthMeasureTool {
 						" transDelay:"+transDelay+" overallDelay:"+overallDelay);
 				
 				int rs = (int)((float)size / (float)(transDelay) );
-				postMsg("  size:"+size+" delay:"+transDelay);
+				postMsg("    Received "+size+" bytes with delay:"+transDelay+" ms.");
 				return rs;
 			} 
 			catch (IOException e) {

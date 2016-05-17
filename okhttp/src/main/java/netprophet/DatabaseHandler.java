@@ -173,7 +173,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 		String objStr = gson.toJson(arr);
 		System.err.println("GSONSTRING: "+objStr);
 		//DEBUG
-		File file  = new File(context.getFilesDir(), "debug_json_str.txt");
+		/*File file  = new File(context.getFilesDir(), "debug_json_str.txt");
 		try {
 			PrintWriter writter = new PrintWriter(new FileOutputStream(file, true));
 			writter.println(objStr);
@@ -181,7 +181,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 		} catch (FileNotFoundException e) {
 			NetProphetLogger.logError("sendObjectsToRemoteDB", e.toString());
 			e.printStackTrace();
-		}	
+		}	*/
 		//END DEBUG
 		
 		//addPostTag(objStr.hashCode());

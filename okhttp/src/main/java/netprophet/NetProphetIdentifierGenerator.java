@@ -18,7 +18,7 @@ public class NetProphetIdentifierGenerator {
 		return this.id++;
 	}
 	
-	//TODO: maybe we should differentiate request ID and trasanction ID?
+	//TODO: maybe we should differentiate request ID and transaction ID?
 	public synchronized long getNextTransactionID(){
 		return this.id++;
 	}

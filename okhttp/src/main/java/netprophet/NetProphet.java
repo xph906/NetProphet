@@ -43,6 +43,11 @@ public class NetProphet {
 				"WARNING: make sure this method being called before initializeNetProphet");
 		testingMode = true;
 	}
+	public static void disableTestingMode(){
+		NetProphetLogger.logWarning("enableTestingMode", 
+				"WARNING: please reinitialize NetProphet afterwards");
+		testingMode = false;
+	}
 	
 	/*
 	 * This function has been called in the beginning of application.
@@ -67,7 +72,9 @@ public class NetProphet {
 		OkHttpClient.initializeNetProphetDesktop(enableOptimization, testingMode);
 	}
 	
-
+	public static boolean isInTestingMode(){
+		return testingMode;
+	}
 
 	public static NetProphet getInstance(){
 		if(context == null)

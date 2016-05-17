@@ -26,6 +26,7 @@ import java.security.cert.CertificateException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import netprophet.NetProphet;
 import okhttp3.Address;
 import okhttp3.ConnectionPool;
 import okhttp3.Request;
@@ -177,14 +178,18 @@ public final class StreamAllocation {
   private RealConnection findConnection(int connectTimeout, int readTimeout, int writeTimeout,
       boolean connectionRetryEnabled) throws IOException, RouteException {
     Route selectedRoute;
+    /*NetProphet*/
+    boolean inTestingMode = NetProphet.isInTestingMode();
+    /*End NetProphet*/
     synchronized (connectionPool) {
       if (released) throw new IllegalStateException("released");
       if (stream != null) throw new IllegalStateException("stream != null");
       if (canceled) throw new IOException("Canceled");
 
       RealConnection allocatedConnection = this.connection;
-      if (allocatedConnection != null && !allocatedConnection.noNewStreams) {
-    	  /* NetProphet */
+      /* NetProphet */
+      if (allocatedConnection != null && !allocatedConnection.noNewStreams && !inTestingMode) {
+      // if (allocatedConnection != null && !allocatedConnection.noNewStreams ) {	  
           //ConnSetupEndTime = 0 means connection is from pool
           request.getRequestTimingANP().setConnSetupEndTimeANP(0);
           request.getRequestTimingANP().setUseConnCache(true);
@@ -194,9 +199,11 @@ public final class StreamAllocation {
 
       // Attempt to get a connection from the pool.
       RealConnection pooledConnection = Internal.instance.get(connectionPool, address, this);
-      if (pooledConnection != null) {
+      /* NetProphet */
+      if (pooledConnection != null && !inTestingMode) {
+      //if (pooledConnection != null) {
         this.connection = pooledConnection;
-        /* NetProphet */
+        
         //ConnSetupEndTime = 0 means connection is from pool
         request.getRequestTimingANP().setConnSetupEndTimeANP(0);
         request.getRequestTimingANP().setUseConnCache(true);

@@ -161,9 +161,7 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   static NetProphetDns netProphetDns = null;
   static NetProphetTestingDns netProphetTestingDns = null;
   static NetUtility netUtility;
-  
-  
-  
+ 
   public static void initializeNetProphet(Context context, 
 		  boolean enableOptimization,
 		  boolean enableTestingMode){
@@ -171,12 +169,15 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
 	  OkHttpClient.staticContext = context;
 	  if(enableTestingMode){
 		  netProphetTestingDns = new NetProphetTestingDns();
+		  //inTestingMode = true;
 	  }
 	  else if(enableOptimization){
 		  netProphetDns = new NetProphetDns();
+		  //inTestingMode = false;
 	  }
 	  else{
 		  netProphetDns = null; //enable default DNS.
+		  //inTestingMode = false;
 	  }
   }
   public static void disableLogger(){
@@ -186,9 +187,11 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
 	  OkHttpClient.staticContext = null;
 	  if(enableTestingMode){
 		  netProphetTestingDns = new NetProphetTestingDns();
+		  //inTestingMode = true;
 	  }
 	  else if(enableOptimization){
 		  netProphetDns = new NetProphetDns();
+		  //inTestingMode = false;
 	  }
 	  else{
 		  netProphetDns = null; //enable default DNS.
@@ -202,6 +205,7 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
   public static NetProphetDns getNetProphetDns(){
 	  return netProphetDns;
   }
+ 
   
   /* End NetProphet*/
   public OkHttpClient() {
@@ -459,6 +463,7 @@ public void setContext(Context context) {
       /* NetProphet */
       if (netProphetTestingDns != null){
     	  dns = netProphetTestingDns;
+    	  //dns = new NetProphetTestingDns();
     	  NetProphetLogger.logDebugging("OkHttpClient.build", 
     			  "using NetProphet Testing DNS");
       }
