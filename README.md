@@ -3,7 +3,7 @@ NetProphet is a library supporting networking delay diagnosis and optimization. 
 
 In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP Handshake delay, 3. TLS handshake delay, 4. Request Upload delay, 5. Time-to-first-byte (TTFB) delay, 6. Server delay (a part of TTFB delay) and 7. Response Transmission delay. The delay information will be cached onto app and uploaded to server: http://netprophet.xcdu.me/ when the number of requests have achieved a threshold when user is on WIFI.
 
-#Usage:
+##Usage:
 1. Add the jar file okhttp/target/okhttp-3.1.0-SNAPSHOT.jar into your project:
     cp libs/okhttp-3.1.0-SNAPSHOT.jar <app-directory>/app/libs/
     cp libs/dnsjava-2.1.7.jar <app-directory>/app/libs/
@@ -59,7 +59,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
           errorMsg: if the call triggers an Exception, developer can specify the error msg; By default, errorMsg is set as null;
           respEndTime: the end timestamp. By default, this value is set as null, so NetProphet will automatically use current timestamp as the ending time.
 
-Development:
+##Development:
 When importing NetPropohet, dnsjava is required
 
 Steps to import into Eclipse
