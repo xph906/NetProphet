@@ -62,8 +62,11 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
     response.body().informFinishedReadingResponse(int respSize, String errorMsg, int respEndTime );
     Arguments:
       respSize is the size of the contents;
-      errorMsg: if the call triggers an Exception, developer can specify the error msg; By default, errorMsg is set as null;
-      respEndTime: the end timestamp. By default, this value is set as null, so NetProphet will automatically use current timestamp as the ending time.
+      errorMsg: if the call triggers an Exception, developer can specify the error msg;
+              By default, errorMsg is set as null;
+      respEndTime: the ending timestamp. 
+              By default, this value is set as null and NetProphet will use current 
+              timestamp as the ending time.
 
 ```
 
