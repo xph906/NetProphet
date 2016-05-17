@@ -8,12 +8,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
     cp libs/okhttp-3.1.0-SNAPSHOT.jar <app-directory>/app/libs/
     cp libs/dnsjava-2.1.7.jar <app-directory>/app/libs/
    Guarantee the app has the following permissions:
-    _android.permission.INTERNETi_
-    _android.permission.ACCESS_COARSE_LOCATION_
-    android.permission.ACCESS_FINE_LOCATION
-    android.permission.ACCESS_WIFI_STATE
-    android.permission.ACCESS_NETWORK_STATE
-    android.permission.READ_PHONE_STATE
+    INTERNET, ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, ACCESS_WIFI_STATE, ACCESS_NETWORK_STATE, READ_PHONE_STATE
 
 2. Initialization: In the beginning of the application (onCreate(…) method), add the following line of code:
     //The second argument indicates no optimization. 
