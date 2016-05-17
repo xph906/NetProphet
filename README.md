@@ -58,15 +58,18 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
 
     /* Note: in order to tell NetProphet the ending time of reading streaming contents, 
      * you need to inform the end of the stream by calling the following function when
-     * streaming contents are all read: */
+     * streaming contents are all read: 
+     * Arguments:
+     *  respSize is the size of the contents;
+     *  errorMsg: developer can specify customized error msg.
+     *    By default, errorMsg is set as null;
+     *  respEndTime: the ending timestamp. 
+     *    By default, this value is set as null and NetProphet will use current 
+     *    timestamp as the ending time.
+     */
+    
     response.body().informFinishedReadingResponse(int respSize, String errorMsg, int respEndTime );
-    Arguments:
-      respSize is the size of the contents;
-      errorMsg: if the call triggers an Exception, developer can specify the error msg;
-              By default, errorMsg is set as null;
-      respEndTime: the ending timestamp. 
-              By default, this value is set as null and NetProphet will use current 
-              timestamp as the ending time.
+
 
 ```
 
