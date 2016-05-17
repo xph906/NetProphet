@@ -56,8 +56,9 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
     Binary:
         InputStream is = response.body().byteStream();
 
-    Note: in order to tell NetProphet the ending time of reading streaming contents, please inform the end of the stream by calling the followinc function when it's done:
-
+    /* Note: in order to tell NetProphet the ending time of reading streaming contents, 
+     * you need to inform the end of the stream by calling the following function when
+     * streaming contents are all read: */
     response.body().informFinishedReadingResponse(int respSize, String errorMsg, int respEndTime );
     Arguments:
       respSize is the size of the contents;
