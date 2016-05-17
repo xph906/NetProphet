@@ -9,7 +9,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
     cp libs/okhttp-3.1.0-SNAPSHOT.jar <app-directory>/app/libs/
     cp libs/dnsjava-2.1.7.jar <app-directory>/app/libs/
 ```
-   Also, guarantee the app has the following permissions:
+	Also, guarantee the app has the following permissions:
     INTERNET, ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, ACCESS_WIFI_STATE, ACCESS_NETWORK_STATE, READ_PHONE_STATE
 
 2. Initialization: In the beginning of the application (onCreate(…) method), add the following line of code:
@@ -20,38 +20,51 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
 ```
 3. Build and send request: NetProphet keeps all the usage of okhttp3.
     For example, send a synchronous GET request:
+```
       Request request = new Request.Builder()
         .url("http://publicobject.com/helloworld.txt”)
         .build();
       Response response = client.newCall(request).execute();
-
+```
     Send a POST request:
+```
       RequestBody body = RequestBody.create(JSON, json);
       Request request = new Request.Builder()
         .url(url)
         .post(body)
         .build();
       Response response = client.newCall(request).execute();
+```
     
     More usage can be found via this link: https://github.com/square/okhttp/wiki/Recipes
 
 4. Read response:
     Non-streaming approach: this approach is convenient, but all contents will be read into memory, so it’s ideal for data less than 1MB.
       Plaintext:
+```
         String contents = response.body().string();
+```
       Image:
+```
         Bitmap map = response.body().bitmap();
+```
       Other binary:
         not supported for non-streaming approach.
      
     Streaming approach: this approach will read contents as a stream, but it requires developer to explicitly inform NetProphet the end of the stream.
       Plaintext:
+```
         InputStream is = response.body().charStream();
+```
       Binary:
+```
           InputStream is = response.body().byteStream();
+```
       
       Note: in order to tell NetProphet the ending time of reading streaming contents, please inform the end of the stream by calling the followinc function when it's done:
+```
         response.body().informFinishedReadingResponse(int respSize, String errorMsg, int respEndTime );
+```
         Arguments:
           respSize is the size of the contents;
           errorMsg: if the call triggers an Exception, developer can specify the error msg; By default, errorMsg is set as null;
