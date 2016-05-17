@@ -1,9 +1,9 @@
+#NetProphet:
 NetProphet is a library supporting networking delay diagnosis and optimization. We will provide customized packages for different HTTP libraries, minimizing the deployment burden of developers. This package is for okhttp3, so it’s backward compatible to okhttp functionalities.
 
 In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP Handshake delay, 3. TLS handshake delay, 4. Request Upload delay, 5. Time-to-first-byte (TTFB) delay, 6. Server delay (a part of TTFB delay) and 7. Response Transmission delay. The delay information will be cached onto app and uploaded to server: http://netprophet.xcdu.me/ when the number of requests have achieved a threshold when user is on WIFI.
 
-Usage:
-
+#Usage:
 1. Add the jar file okhttp/target/okhttp-3.1.0-SNAPSHOT.jar into your project:
     cp libs/okhttp-3.1.0-SNAPSHOT.jar <app-directory>/app/libs/
     cp libs/dnsjava-2.1.7.jar <app-directory>/app/libs/
