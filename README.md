@@ -5,16 +5,19 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
 
 ##Usage:
 1. Add the jar file okhttp/target/okhttp-3.1.0-SNAPSHOT.jar into your project:
+```
     cp libs/okhttp-3.1.0-SNAPSHOT.jar <app-directory>/app/libs/
     cp libs/dnsjava-2.1.7.jar <app-directory>/app/libs/
-   Guarantee the app has the following permissions:
+```
+   Also, guarantee the app has the following permissions:
     INTERNET, ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, ACCESS_WIFI_STATE, ACCESS_NETWORK_STATE, READ_PHONE_STATE
 
 2. Initialization: In the beginning of the application (onCreate(…) method), add the following line of code:
+```
     //The second argument indicates no optimization. 
     //Optimization progress is still ongoing.
     NetProphet.initializeNetProphet(getApplicationContext(), false); 
-
+```
 3. Build and send request: NetProphet keeps all the usage of okhttp3.
     For example, send a synchronous GET request:
       Request request = new Request.Builder()
