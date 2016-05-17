@@ -38,7 +38,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
     More usage can be found via this link: https://github.com/square/okhttp/wiki/Recipes
 
 4. Read response:
-    Non-streaming approach: this approach is convenient, but all contents will be read into memory, so it’s ideal for data less than 1MB.
+    * Non-streaming approach: this approach is convenient, but all contents will be read into memory, so it’s ideal for data less than 1MB. 1
 ```
       Plaintext:
         String contents = response.body().string();
@@ -47,7 +47,7 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
       Other binary:
         not supported for non-streaming approach.
 ```
-    Streaming approach: this approach will read contents as a stream, but it requires developer to explicitly inform NetProphet the end of the stream.
+    * Streaming approach: this approach will read contents as a stream, but it requires developer to explicitly inform NetProphet the end of the stream. 2
 ```
       Plaintext:
         InputStream is = response.body().charStream();
@@ -56,11 +56,11 @@ In this version, NetProphet will breakdown the delays into 1. DNS delay, 2. TCP 
 ```
       Note: in order to tell NetProphet the ending time of reading streaming contents, please inform the end of the stream by calling the followinc function when it's done:
 ```
-        response.body().informFinishedReadingResponse(int respSize, String errorMsg, int respEndTime );
-        Arguments:
-          respSize is the size of the contents;
-          errorMsg: if the call triggers an Exception, developer can specify the error msg; By default, errorMsg is set as null;
-          respEndTime: the end timestamp. By default, this value is set as null, so NetProphet will automatically use current timestamp as the ending time.
+    response.body().informFinishedReadingResponse(int respSize, String errorMsg, int respEndTime );
+    Arguments:
+      respSize is the size of the contents;
+      errorMsg: if the call triggers an Exception, developer can specify the error msg; By default, errorMsg is set as null;
+      respEndTime: the end timestamp. By default, this value is set as null, so NetProphet will automatically use current timestamp as the ending time.
 
 ```
 ##Development:
